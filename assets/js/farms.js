@@ -10,7 +10,6 @@ import {
 // the approve/reject/block handlers (at click time, well after this
 // resolves).
 const adminUserPromise = initAdminShell({ active: 'farms', title: 'Farm Management', subtitle: 'Review, approve and manage every farm subscription.' });
-await adminUserPromise;
 
 const $ = (id) => document.getElementById(id);
 let farms = [];
