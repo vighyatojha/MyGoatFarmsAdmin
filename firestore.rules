@@ -1,0 +1,752 @@
+rules_version = '2';
+
+// =====================================================================
+// MyGoatFarms — Firestore Security Rules
+//
+// Access model:
+//   1. Farm owner:
+//      farms/{farmId}.authUid == request.auth.uid
+//
+//   2. Farm partner:
+//      farms/{farmId}/partners/{request.auth.uid} exists AND its
+//      `status` field is 'active' (or absent, for docs written before
+//      the approval workflow existed).
+//
+//   3. Admin (NEW — added for the admin website; see "ADMIN ADDITIONS"
+//      throughout this file for every change made for it):
+//      a signed-in user with a matching document in /admins.
+//
+// All farm-related data is protected by isOwnerOrPartner(). Admin access
+// is layered on top of that with OR conditions — nothing that already
+// worked for the owner/partner model was changed or removed.
+//
+// CHANGES vs. the previous version (see accompanying notes):
+//   - farms/{farmId}: direct `get` now requires isOwnerOrPartner(farmId).
+//     `list` is now scoped to the signed-in caller's own farm doc — the
+//     mobile-number login feature this used to stay public for has been
+//     removed from the app entirely (see mobileIndex below).
+//   - collectionGroup('partners'): narrowed so a *signed-in* caller can
+//     only read their own partner doc. No anonymous branch — there is
+//     no mobile-number-based partner lookup.
+//   - mobileIndex/{mobileNumber}: existence-only index kept solely for
+//     the "this mobile number is already registered" signup check.
+//   - counters/farms: locked to just that one doc, just the `lastId`
+//     field, incrementing by exactly 1 per write.
+//
+// ADMIN ADDITIONS (for the separate, static admin website — no backend
+// server, Firestore rules are its entire access-control system):
+//   - isAdmin(): new helper, true only for a signed-in user with a
+//     matching /admins/{uid} document. That document is never created
+//     or edited by any client — see the /admins block below for how
+//     it's managed (Firebase Console only).
+//   - farms/{farmId}: `get` and `list` now also allow isAdmin(). `update`
+//     also allows isAdmin(), but ONLY when the write touches exactly one
+//     field — `subscriptionInfo` — so the admin panel can never alter a
+//     farm's actual operational data (profile, goats, stock, bills...).
+//     `create` and `delete` are UNCHANGED (owner-only / not allowed) —
+//     the admin panel never creates or deletes a farm document.
+//   - New top-level collections, all previously unused by this app:
+//     /admins, /subscriptionPayments, /enquiries, /adminSettings.
+// =====================================================================
+
+service cloud.firestore {
+
+  match /databases/{database}/documents {
+
+    // ================================================================
+    // AUTHENTICATION HELPERS
+    // ================================================================
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(farmId) {
+      return isSignedIn()
+        && get(
+          /databases/$(database)/documents/farms/$(farmId)
+        ).data.authUid == request.auth.uid;
+    }
+
+    function isPartner(farmId) {
+      let partnerPath =
+        /databases/$(database)/documents/farms/$(farmId)/partners/$(request.auth.uid);
+
+      // A partner document existing is not enough on its own: partners
+      // go through an approval workflow (status: 'pending' -> 'active',
+      // or 'rejected' / 'disabled'), and only an 'active' partner should
+      // get farm access. Docs written before this workflow existed have
+      // no 'status' field at all, so those default to 'active' via
+      // Map.get()'s fallback rather than being locked out retroactively.
+      return isSignedIn()
+        && exists(partnerPath)
+        && get(partnerPath).data.get('status', 'active') == 'active';
+    }
+
+    function isOwnerOrPartner(farmId) {
+      return isOwner(farmId) || isPartner(farmId);
+    }
+
+    // --- ADMIN ADDITION -------------------------------------------------
+    // True only for a signed-in user with a matching /admins/{uid} doc.
+    // Nothing in this file lets a client create that document — see the
+    // /admins match block further down. This is the ONLY thing that
+    // grants access to the admin website; there is no backend server.
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    // ---------------------------------------------------------------------
+
+
+    // ================================================================
+    // FARMS
+    // ================================================================
+
+    match /farms/{farmId} {
+
+      // --------------------------------------------------------------
+      // Farm lookup
+      // --------------------------------------------------------------
+
+      // Direct fetch by known farmId (FirestoreService.getFarmById) —
+      // every real caller already resolved their own farmId first, so
+      // this no longer needs to be public. Closes "guess an FRM### id
+      // and pull that farm's full document, unauthenticated."
+      // ADMIN ADDITION: the admin panel also fetches a single farm by id
+      // (e.g. after approving it), so isAdmin() is OR'd in here too.
+      allow get: if isOwnerOrPartner(farmId) || isAdmin();
+
+      // Query-based lookup by authUid (FirestoreService.getFarmByAuthUid,
+      // used post-login to find which farm the signed-in owner belongs
+      // to) — scoped to "your own farm doc" only.
+      // ADMIN ADDITION: isAdmin() is OR'd in so the Farm Management page
+      // can list every farm; the owner-scoped branch below is untouched.
+      allow list: if isAdmin()
+        || (isSignedIn() && resource.data.authUid == request.auth.uid);
+
+      // Only authenticated users can create their own farm.
+      // UNCHANGED — the admin panel never creates a farm document.
+      allow create:
+        if isSignedIn()
+        && request.resource.data.authUid == request.auth.uid;
+
+      // Only the farm owner can modify/delete the farm document.
+      // ADMIN ADDITION: isAdmin() may also update, but ONLY when the
+      // write's changed keys are exactly ['subscriptionInfo'] — i.e. the
+      // admin panel can approve/reject/renew/block/unblock a farm's
+      // subscription, and can never touch farmName, ownerName, goats,
+      // stock, or anything else on this document. `delete` is left
+      // untouched on purpose: the admin panel never deletes a farm (that
+      // would orphan every subcollection under it) — Block is the
+      // correct way to suspend a farm, not Delete.
+      allow update:
+        if isOwner(farmId)
+        || (isAdmin()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['subscriptionInfo']));
+
+      allow delete:
+        if isOwner(farmId);
+
+
+      // ============================================================
+      // STOCK
+      // ============================================================
+
+      match /stockItems/{itemId} {
+        allow read, write:
+          if isOwnerOrPartner(farmId);
+      }
+
+      match /stockMovements/{movementId} {
+        allow read, write:
+          if isOwnerOrPartner(farmId);
+      }
+
+
+      // ============================================================
+      // ACTIVITIES
+      // ============================================================
+
+      match /activities/{activityId} {
+        allow read, write:
+          if isOwnerOrPartner(farmId);
+      }
+
+
+      // ============================================================
+      // TRANSACTIONS
+      //
+      // Income / expenses / Palai payments.
+      // ============================================================
+
+      match /transactions/{transactionId} {
+        allow read, write:
+          if isOwnerOrPartner(farmId);
+      }
+
+
+      // ============================================================
+      // PAYMENTS
+      //
+      // Support payment records used by the newer billing system.
+      // Read by FinanceService.getCustomerPaymentHistory() /
+      // getCustomerLedger() and by the Final Checkout Report's
+      // Payment History table.
+      //
+      // NOTE: this is customer/Palai billing, NOT the admin website's
+      // subscription billing — that lives in the separate top-level
+      // /subscriptionPayments collection added near the bottom of this
+      // file, specifically to avoid colliding with this one.
+      // ============================================================
+
+      match /payments/{paymentId} {
+        allow read, write:
+          if isOwnerOrPartner(farmId);
+      }
+
+
+      // ============================================================
+      // NOTIFICATIONS
+      //
+      // Owner and partners can read notifications.
+      // Owner and partners can create/update notifications.
+      // ONLY the farm owner can delete notifications.
+      // ============================================================
+
+      match /notifications/{notificationId} {
+
+        allow read:
+          if isOwnerOrPartner(farmId);
+
+        allow create, update:
+          if isOwnerOrPartner(farmId);
+
+        allow delete:
+          if isOwner(farmId);
+      }
+
+
+      // ============================================================
+      // BILLS
+      //
+      // Monthly Palai bills / generated invoices.
+      // ============================================================
+
+      match /bills/{billId} {
+        allow read, write:
+          if isOwnerOrPartner(farmId);
+      }
+
+
+      // ============================================================
+      // BILLING RECORDS
+      //
+      // Kept for compatibility with newer/local billing code.
+      // ============================================================
+
+      match /billingRecords/{billingRecordId} {
+        allow read, write:
+          if isOwnerOrPartner(farmId);
+      }
+
+
+      // ============================================================
+      // PAYMENT RECORDS
+      //
+      // Kept for compatibility with payment-history implementations.
+      // ============================================================
+
+      match /paymentRecords/{paymentId} {
+        allow read, write:
+          if isOwnerOrPartner(farmId);
+      }
+
+
+      // ============================================================
+      // PALAI CUSTOMERS
+      // ============================================================
+
+      match /palaiCustomers/{customerId} {
+
+        // ------------------------------------------------------------
+        // Customer
+        // ------------------------------------------------------------
+
+        allow read, write:
+          if isOwnerOrPartner(farmId);
+
+
+        // ============================================================
+        // CUSTOMER GOATS
+        // ============================================================
+
+        match /goats/{goatId} {
+
+          // ----------------------------------------------------------
+          // Goat document
+          // ----------------------------------------------------------
+
+          allow read, write:
+            if isOwnerOrPartner(farmId);
+
+
+          // ----------------------------------------------------------
+          // Weight Records
+          //
+          // Customer-Palai goat weight history is stored in:
+          //
+          // farms/{farmId}/palaiCustomers/{customerId}/goats/{goatId}
+          //     /palaiWeightRecords/{recordId}
+          //
+          // Used by MonthlyReportService and the Final Checkout Report.
+          // ----------------------------------------------------------
+
+          match /palaiWeightRecords/{recordId} {
+
+            allow read, write:
+              if isOwnerOrPartner(farmId);
+          }
+
+
+          // ----------------------------------------------------------
+          // Health Records
+          // ----------------------------------------------------------
+
+          match /healthRecords/{recordId} {
+
+            allow read, write:
+              if isOwnerOrPartner(farmId);
+          }
+
+
+          // ----------------------------------------------------------
+          // Health Events
+          // ----------------------------------------------------------
+
+          match /healthEvents/{eventId} {
+
+            allow read, write:
+              if isOwnerOrPartner(farmId);
+          }
+
+
+          // ----------------------------------------------------------
+          // Monthly Photos
+          // ----------------------------------------------------------
+
+          match /monthlyPhotos/{photoId} {
+
+            allow read, write:
+              if isOwnerOrPartner(farmId);
+          }
+
+
+          // ----------------------------------------------------------
+          // Goat Reports
+          // ----------------------------------------------------------
+
+          match /reports/{reportId} {
+
+            allow read, write:
+              if isOwnerOrPartner(farmId);
+          }
+
+
+          // ----------------------------------------------------------
+          // Weight Records
+          //
+          // Compatibility for any older code that still uses:
+          // weightRecords
+          // ----------------------------------------------------------
+
+          match /weightRecords/{recordId} {
+
+            allow read, write:
+              if isOwnerOrPartner(farmId);
+          }
+
+
+          // ----------------------------------------------------------
+          // Vaccination Records
+          // ----------------------------------------------------------
+
+          match /vaccinationRecords/{recordId} {
+
+            allow read, write:
+              if isOwnerOrPartner(farmId);
+          }
+
+
+          // ----------------------------------------------------------
+          // Medicine Records
+          // ----------------------------------------------------------
+
+          match /medicineRecords/{recordId} {
+
+            allow read, write:
+              if isOwnerOrPartner(farmId);
+          }
+
+
+          // ----------------------------------------------------------
+          // Hoof Cutting Records
+          // ----------------------------------------------------------
+
+          match /hoofCuttingRecords/{recordId} {
+
+            allow read, write:
+              if isOwnerOrPartner(farmId);
+          }
+
+
+          // ----------------------------------------------------------
+          // Hair Trimming Records
+          // ----------------------------------------------------------
+
+          match /hairTrimmingRecords/{recordId} {
+
+            allow read, write:
+              if isOwnerOrPartner(farmId);
+          }
+        }
+      }
+
+
+      // ============================================================
+      // PARTNERS
+      // ============================================================
+
+      match /partners/{partnerId} {
+
+        // Owner and existing (approved) partners can read partner
+        // information.
+        allow read:
+          if isOwnerOrPartner(farmId);
+
+        // Only owner can add/update/remove partners — this is what
+        // makes approve/reject/disable/enable owner-only: those are
+        // just updates to this same document's `status` field.
+        allow create, update, delete:
+          if isOwner(farmId);
+      }
+
+
+      // ============================================================
+      // OWN FARM GOATS
+      // ============================================================
+
+      match /ownFarmGoats/{goatId} {
+
+        allow read, write:
+          if isOwnerOrPartner(farmId);
+
+
+        // ----------------------------------------------------------
+        // Growth Records
+        // ----------------------------------------------------------
+
+        match /growthRecords/{recordId} {
+          allow read, write:
+            if isOwnerOrPartner(farmId);
+        }
+
+
+        // ----------------------------------------------------------
+        // Health Events
+        // ----------------------------------------------------------
+
+        match /healthEvents/{eventId} {
+          allow read, write:
+            if isOwnerOrPartner(farmId);
+        }
+
+
+        // ----------------------------------------------------------
+        // Breeding Records
+        // ----------------------------------------------------------
+
+        match /breedingRecords/{recordId} {
+          allow read, write:
+            if isOwnerOrPartner(farmId);
+        }
+      }
+
+
+      // ============================================================
+      // OWN FARM EXPENSES
+      // ============================================================
+
+      match /ownFarmExpenses/{expenseId} {
+
+        allow read, write:
+          if isOwnerOrPartner(farmId);
+      }
+
+
+      // ============================================================
+      // TRADING GOATS (Own Palai)
+      //
+      // farms/{farmId}/tradingGoats/{goatId}
+      //
+      // Used by GoatService (own palai list / profile screens).
+      // The generic first-level catch-all below only reaches one
+      // level under the farm, so weightHistory and healthRecords
+      // (two levels deep) need their own explicit rules here —
+      // otherwise they silently fall through to the default-deny
+      // rule at the bottom of this file, which is what was causing
+      // the "permission-denied" errors on the Own Palai goat
+      // profile screen.
+      // ============================================================
+
+      match /tradingGoats/{goatId} {
+
+        allow read, write:
+          if isOwnerOrPartner(farmId);
+
+
+        // ----------------------------------------------------------
+        // Weight History
+        //
+        // farms/{farmId}/tradingGoats/{goatId}/weightHistory/{recordId}
+        // ----------------------------------------------------------
+
+        match /weightHistory/{recordId} {
+          allow read, write:
+            if isOwnerOrPartner(farmId);
+        }
+
+
+        // ----------------------------------------------------------
+        // Health Records
+        //
+        // farms/{farmId}/tradingGoats/{goatId}/healthRecords/{recordId}
+        // ----------------------------------------------------------
+
+        match /healthRecords/{recordId} {
+          allow read, write:
+            if isOwnerOrPartner(farmId);
+        }
+      }
+
+
+      // ============================================================
+      // COMPATIBILITY FOR OTHER FARM SUB-COLLECTIONS
+      //
+      // IMPORTANT:
+      // This remains protected by the farm owner/partner check.
+      //
+      // It does NOT make the database public.
+      //
+      // It allows future first-level farm modules to work without
+      // requiring a security-rule deployment every time a new module
+      // is added.
+      //
+      // NOTE: this only reaches ONE level under the farm
+      // (farms/{farmId}/{subCollection}/{documentId}). Any module
+      // that nests a sub-subcollection under one of its documents
+      // (like tradingGoats/{goatId}/weightHistory above) needs its
+      // own explicit match block, or it will be denied by default.
+      // ============================================================
+
+      match /{subCollection}/{documentId} {
+
+        allow read, write:
+          if isOwnerOrPartner(farmId);
+      }
+    }
+
+
+    // =================================================================
+    // COLLECTION-GROUP GOATS
+    //
+    // Required for collectionGroup('goats') queries. Two independent
+    // ways to prove the farmId, both legitimate:
+    //   - resource.data.farmId: used by the four collectionGroup
+    //     queries that filter `.where('farmId', isEqualTo: farmId)`
+    //     (allActiveGoatsStream, dueHealthReminderGoatsStream,
+    //     upcomingCustomerHealthReminders,
+    //     allCustomerHealthRecordSummaries) — Firestore requires that
+    //     equality filter to be present for this branch to even be
+    //     evaluable, so it can't be satisfied by an unfiltered dump.
+    //   - path[1]: used by single-doc fetches (getPalaiGoat) that
+    //     don't carry a `farmId` filter at all, since there's nothing
+    //     to filter on for a direct get(). Reviewed against the repo —
+    //     both are load-bearing, this doesn't need to change.
+    // =================================================================
+
+    match /{path=**}/goats/{goatId} {
+
+      allow read:
+        if isOwnerOrPartner(resource.data.farmId)
+        || isOwnerOrPartner(path[1]);
+    }
+
+
+    // =================================================================
+    // COLLECTION-GROUP PARTNERS
+    //
+    // The nested `partners/{partnerId}` rule above governs farm-scoped
+    // access (farms/{farmId}/partners/{partnerId} read directly, or via
+    // .doc(farmId).collection('partners') — e.g. the owner's Partner
+    // Management screen, which lists every partner on their own farm).
+    // That rule still applies here too — Firestore ORs every match
+    // block that applies to a given path — so the owner's own listing
+    // keeps working unchanged.
+    //
+    // This block covers collectionGroup('partners') queries used
+    // post-sign-in by getPartnerByAuthUid() and the Customer Goat
+    // Registration permission check, both of which resolve which farm
+    // a partner belongs to via collectionGroup('partners')
+    // .where('authUid', isEqualTo: uid) — a caller only ever needs
+    // their own doc, so this is scoped to that. There is no anonymous
+    // branch: the app has no mobile-number-based partner lookup.
+    // =================================================================
+
+    match /{path=**}/partners/{partnerId} {
+
+      allow get, list:
+        if isSignedIn() && resource.data.authUid == request.auth.uid;
+    }
+
+
+    // =================================================================
+    // MOBILE NUMBER INDEX
+    //
+    // One marker doc per registered farm mobile number, keyed by the
+    // mobile number itself: mobileIndex/{mobileNumber} -> { farmId }.
+    // This is what isMobileNumberTaken() uses instead of an anonymous
+    // `where` query against farms, for the "this mobile number is
+    // already registered" signup check. There's no login feature built
+    // on this — it's existence-only, no email is stored here.
+    //
+    //   - `get` requires already knowing the exact mobile number (the
+    //     doc id) — there is no way to ask "give me every mobile
+    //     number", so `list: if false` and the collection can never be
+    //     dumped.
+    //   - `create` is authorized by isOwner(farmId) using the farmId
+    //     carried in the write itself: the farm doc, written just
+    //     before this in createFarm(), already shows the caller as
+    //     that farm's owner.
+    // =================================================================
+
+    match /mobileIndex/{mobileNumber} {
+
+      allow get: if true;
+      allow list: if false;
+
+      allow create:
+        if isSignedIn()
+        && request.resource.data.keys().hasOnly(['farmId'])
+        && request.resource.data.farmId is string
+        && isOwner(request.resource.data.farmId);
+
+      allow update, delete: if false;
+    }
+
+
+    // =================================================================
+    // FARM COUNTER
+    //
+    // A single global doc (counters/farms) used to mint the next
+    // sequential farm id at signup — there's no farmId to scope this
+    // to, since it exists to generate one. Locked to: only this exact
+    // doc, only the `lastId` field, and only ever incrementing by 1.
+    // =================================================================
+
+    match /counters/farms {
+
+      allow read: if isSignedIn();
+
+      allow create:
+        if isSignedIn()
+        && request.resource.data.keys().hasOnly(['lastId'])
+        && request.resource.data.lastId is int;
+
+      allow update:
+        if isSignedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastId'])
+        && request.resource.data.lastId == resource.data.lastId + 1;
+
+      allow delete: if false;
+    }
+
+    // Anything else under counters/ — none currently exists, and
+    // nothing should be added here without deliberately extending this
+    // file.
+    match /counters/{counterId} {
+      allow read, write: if false;
+    }
+
+
+    // =================================================================
+    // ADMIN ADDITIONS — everything below this line is new, for the
+    // separate static admin website. Nothing above this point was
+    // changed except the three spots marked "ADMIN ADDITION" further up
+    // (isAdmin() itself, and the farms/{farmId} get/list/update rules).
+    // =================================================================
+
+    // Managed entirely through the Firebase Console (Firestore → admins
+    // → add a document whose ID is the user's Auth UID). No client may
+    // create, change, list or delete admin records — that would let
+    // anyone self-promote to admin.
+    match /admins/{uid} {
+      allow get: if isSignedIn() && request.auth.uid == uid;
+      allow list, write: if false;
+    }
+
+    // Created automatically by the admin panel when a farm's
+    // subscription is approved or renewed. Deliberately a different
+    // top-level collection from farms/{farmId}/payments above, which is
+    // customer/Palai billing, not subscription billing.
+    match /subscriptionPayments/{paymentId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Public Contact form: anyone may create an enquiry (validated
+    // below); nobody but an admin may read, change or delete one. This
+    // keeps the enquiry inbox a one-way visitor -> admin channel, with
+    // no reply path back out.
+    match /enquiries/{enquiryId} {
+      allow create: if request.resource.data.keys().hasOnly(['name', 'email', 'phone', 'subject', 'message', 'status', 'receivedAt'])
+        && request.resource.data.status == 'New'
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100
+        && request.resource.data.email is string && request.resource.data.email.size() > 0 && request.resource.data.email.size() <= 254
+        && request.resource.data.subject is string && request.resource.data.subject.size() > 0 && request.resource.data.subject.size() <= 150
+        && request.resource.data.message is string && request.resource.data.message.size() > 0 && request.resource.data.message.size() <= 2000;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Subscription plans shown in the admin panel's Approve / Renew
+    // dropdowns (Settings page).
+    match /adminSettings/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+
+    // =================================================================
+    // DEFAULT DENY
+    //
+    // Anything not explicitly covered above is denied.
+    // =================================================================
+
+    match /{document=**} {
+
+      allow read, write: if false;
+    }
+  }
+}
+
+// =====================================================================
+// REQUIRED ONE-TIME MIGRATION BEFORE DEPLOYING THIS FILE
+//
+// Anyone who registered before this change has no mobileIndex doc yet,
+// so isMobileNumberTaken() would report every existing mobile number as
+// available — letting a new signup collide with one already in use.
+// Deploy these rules together with the matching firestore_service.dart
+// change (isMobileNumberTaken now reads mobileIndex; createFarm now
+// writes it), AND run a one-time backfill that writes
+// mobileIndex/{mobileNumber} -> {farmId} for every existing farm.
+// Nothing about login is affected either way — mobile-number login has
+// been removed from the app; sign-in is email + password only.
+// =====================================================================

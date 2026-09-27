@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Enquiries · My Goat Farms Admin</title>
+  <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+  <link rel="stylesheet" href="/assets/css/styles.css">
+  <link rel="stylesheet" href="/assets/css/admin.css">
+</head>
+<body class="admin-page">
+  <aside class="sidebar" id="sidebarRoot"></aside>
+
+  <main class="admin-main">
+    <header class="admin-top" id="topbarRoot"></header>
+
+    <section class="summary-grid" aria-label="Summary">
+      <div class="summary-card">
+        <div class="summary-card-header"><span>Total Enquiries</span><div class="icon-chip teal"><svg class="svg-icon" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></div></div>
+        <strong id="statTotal">0</strong><small>Since launch</small>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-header"><span>New</span><div class="icon-chip orange"><svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div>
+        <strong id="statNew">0</strong><small>Not yet reviewed</small>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div><h2>Enquiry Inbox</h2><p>One-way messages from the public Contact form — visitor to admin only.</p></div>
+      </div>
+
+      <div class="inbox-layout">
+        <div class="inbox-list-col">
+          <div class="inbox-toolbar">
+            <input id="search" class="input" type="search" placeholder="Search by name, email or subject…" aria-label="Search enquiries">
+            <div class="filter-pills" id="statusPills"></div>
+          </div>
+
+          <div class="inbox-list-head">
+            <input type="checkbox" class="head-check" id="headCheck" aria-label="Select all">
+            <span id="listCount">0 enquiries</span>
+          </div>
+
+          <div class="select-bar" id="selectBar">
+            <span id="selectCount">0 selected</span>
+            <div class="select-bar-actions">
+              <button class="btn btn-outline btn-sm" id="markReadBtn" type="button">Mark Read</button>
+              <button class="btn btn-danger btn-sm" id="deleteBtn" type="button">Delete</button>
+            </div>
+          </div>
+
+          <div class="inbox-list-scroll" id="enquiryList"></div>
+        </div>
+
+        <div class="inbox-detail-col" id="inboxDetail">
+          <div class="inbox-detail-empty" id="detailEmpty">
+            <svg class="svg-icon" viewBox="0 0 24 24" width="40" height="40"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            <p>Select an enquiry to read it here.</p>
+          </div>
+          <div class="inbox-detail-content hidden" id="detailContent">
+            <div class="inbox-detail-header">
+              <h3 id="detailSubject"></h3>
+              <span class="badge" id="detailStatus"></span>
+            </div>
+            <div class="detail-grid" id="detailMeta"></div>
+            <div class="detail-item" style="margin-top:6px;"><span>Message</span></div>
+            <div class="detail-message" id="detailMessage"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="/assets/js/enquiries.js"></script>
+</body>
+</html>

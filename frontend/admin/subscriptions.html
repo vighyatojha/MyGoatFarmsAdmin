@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Subscriptions · My Goat Farms Admin</title>
+  <link rel="icon" type="image/png" href="/assets/img/favicon.png">
+  <link rel="stylesheet" href="/assets/css/styles.css">
+  <link rel="stylesheet" href="/assets/css/admin.css">
+</head>
+<body class="admin-page">
+  <aside class="sidebar" id="sidebarRoot"></aside>
+
+  <main class="admin-main">
+    <header class="admin-top" id="topbarRoot"></header>
+
+    <section class="summary-grid" aria-label="Summary">
+      <div class="summary-card">
+        <div class="summary-card-header"><span>Active</span><div class="icon-chip"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div></div>
+        <strong id="statActive">0</strong><small>Subscriptions running</small>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-header"><span>Expiring Soon</span><div class="icon-chip orange"><svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div>
+        <strong id="statExpiring">0</strong><small>15 days or fewer left</small>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-header"><span>Expired</span><div class="icon-chip purple"><svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></div></div>
+        <strong id="statExpired">0</strong><small>Needs renewal</small>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-header"><span>Pending Approval</span><div class="icon-chip teal"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div></div>
+        <strong id="statPending">0</strong><small>Not started yet</small>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div><h2>Subscriptions</h2><p>Countdown starts from each farm's approval date.</p></div>
+      </div>
+
+      <div class="toolbar toolbar-stacked">
+        <input id="search" class="input" type="search" placeholder="Search by farm or plan…" aria-label="Search subscriptions">
+        <div class="filter-pills" id="statusPills"></div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Farm</th><th>Plan</th><th>Start</th><th>Expiry</th><th>Days Left</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="subTable"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div id="subModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="subModalTitle">
+    <div class="modal-card">
+      <button class="modal-close" id="closeSubModal" type="button" aria-label="Close">&times;</button>
+      <h2 id="subModalTitle">Renew / Extend Subscription</h2>
+      <form id="subForm" novalidate>
+        <input type="hidden" id="subFarmId">
+        <div class="field">
+          <label class="field-label" for="subPlan">Subscription Plan</label>
+          <select id="subPlan" class="select" required></select>
+        </div>
+        <div class="form-row">
+          <div class="field"><label class="field-label" for="subDuration">Duration (days)</label><input id="subDuration" class="input" type="number" min="1" required></div>
+          <div class="field"><label class="field-label" for="subAmount">Amount (₹)</label><input id="subAmount" class="input" type="number" min="0" required></div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="subPaymentStatus">Payment Status</label>
+          <select id="subPaymentStatus" class="select"><option>Paid</option><option>Pending</option><option>Failed</option><option>Refunded</option></select>
+        </div>
+        <div class="form-row">
+          <div class="field"><label class="field-label" for="subPaymentDate">Payment Date</label><input id="subPaymentDate" class="input" type="date"></div>
+          <div class="field"><label class="field-label" for="subPaymentRef">Payment Reference</label><input id="subPaymentRef" class="input" maxlength="120"></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" id="cancelSubModal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveSub">Confirm</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="/assets/js/subscriptions.js"></script>
+</body>
+</html>

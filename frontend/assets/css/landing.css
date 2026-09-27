@@ -1,0 +1,48 @@
+/* Public landing page additions (builds on styles.css tokens) */
+.site-header nav { display: flex; align-items: center; gap: 26px; }
+.nav-link { font-weight: 500; color: var(--text); }
+.nav-link:hover { color: var(--green-dark); }
+
+.hero-logo { width: 180px; height: 180px; margin: 0 auto 18px; border-radius: 50%; box-shadow: var(--shadow-lg); background: var(--white); }
+.hero-card { text-align: center; }
+
+.feature-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.feature-grid .icon-chip { margin-bottom: 14px; }
+
+.about-copy { display: grid; gap: 14px; }
+
+.section-tint { background: var(--green-light); border-radius: var(--radius-lg); }
+.why-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.why-grid > div { background: var(--white); border-radius: var(--radius); padding: 22px 24px; border-left: 4px solid var(--green); box-shadow: var(--shadow); }
+.why-grid h3 { font-size: 20px; margin-bottom: 6px; }
+.why-grid p { color: var(--text-grey); }
+
+.manage-list { white-space: nowrap; flex-shrink: 0; list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; font-family: var(--font-head); font-size: 26px; font-weight: 700; }
+
+.contact-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 24px; max-width: 1000px; margin: 0 auto; align-items: start; }
+.contact-card { background: var(--white); border-radius: var(--radius-lg); padding: 32px; box-shadow: var(--shadow); }
+.contact-details-card { display: flex; flex-direction: column; justify-content: space-between; gap: 20px; }
+.contact-details address { font-style: normal; margin: 8px 0 12px; }
+.contact-line { margin-top: 4px; font-weight: 500; }
+.contact-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+.enquiry-form h3 { margin-bottom: 6px; }
+.form-hint { font-size: 13px; color: var(--text-grey); margin-bottom: 18px; }
+.enquiry-form textarea.input { min-height: 110px; }
+.form-error.success { color: var(--success); }
+
+@media (max-width: 860px) {
+  .contact-grid { grid-template-columns: 1fr; }
+}
+
+:focus-visible { outline: 3px solid var(--info); outline-offset: 2px; }
+
+@media (max-width: 1024px) {
+  .feature-grid.cols-3, .why-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
+  .nav-link { display: none; }
+  .feature-grid.cols-3, .why-grid { grid-template-columns: 1fr; }
+  .manage-list { font-size: 22px; white-space: normal; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }

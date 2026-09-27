@@ -1,0 +1,203 @@
+/* Admin-only helpers (keeps HTML/JS free of inline styles so a strict CSP can be used) */
+.brand-lg { font-size: 24px; }
+.badge-inline { margin-left: 12px; font-size: 13px; vertical-align: middle; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.cell-strong { font-weight: 600; }
+.cell-sub { font-size: 12px; color: var(--text-grey); }
+.cell-mono { font-family: monospace; font-size: 11px; opacity: .8; }
+.stock-num { font-weight: 700; color: var(--green-dark); }
+.stock-num small { font-weight: 400; color: var(--text-grey); font-size: 12px; }
+.empty-row { text-align: center; padding: 35px; color: var(--text-grey); }
+.action-btn.danger { color: var(--error); }
+.side-link { text-decoration: none; }
+
+/* Table-page toolbars (Farms / Subscriptions / Payments): narrow search bar
+   stacked above the filter pills, instead of a wide bar with pills to the side */
+.toolbar-stacked {
+  grid-template-columns: 1fr !important;
+  align-items: flex-start;
+}
+.toolbar-stacked .input { max-width: 320px; }
+.toolbar-stacked .filter-pills { margin-top: 2px; }
+
+/* Status filter pills (Farms / Subscriptions / Payments / Enquiries toolbars) */
+.filter-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.pill {
+  border: 1px solid var(--divider);
+  background: var(--white);
+  color: var(--text-grey);
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pill:hover { border-color: var(--green); color: var(--green-dark); }
+.pill.active { background: var(--green-dark); border-color: var(--green-dark); color: var(--white); }
+.pill .count { opacity: 0.75; margin-left: 4px; }
+
+/* Row selection checkboxes + bulk action bar */
+.check-cell { width: 34px; }
+.row-check, .head-check { width: 17px; height: 17px; cursor: pointer; accent-color: var(--green-dark); }
+.select-bar {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 26px;
+  background: var(--green-light);
+  border-bottom: 1px solid var(--divider);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--green-dark);
+}
+.select-bar.show { display: flex; }
+.select-bar-actions { display: flex; gap: 10px; }
+
+/* Simple CSS bar chart (Earnings) — no external chart library, CSP-safe */
+.bars { display: flex; flex-direction: column; gap: 10px; }
+.bar-row { display: grid; grid-template-columns: 56px 1fr 90px; align-items: center; gap: 12px; font-size: 12.5px; }
+.bar-row .bar-label { color: var(--text-grey); font-weight: 600; }
+.bar-track { background: var(--green-pale); border-radius: 999px; height: 12px; overflow: hidden; }
+.bar-fill { background: linear-gradient(90deg, var(--green), var(--green-dark)); height: 100%; border-radius: 999px; transition: width 0.4s var(--ease); }
+.bar-row .bar-amount { text-align: right; font-weight: 700; color: var(--text); }
+
+/* Settings: subscription plan cards */
+.plan-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; padding: 22px 26px; }
+.plan-card { border: 1px solid var(--divider); border-radius: var(--radius-lg); padding: 18px; background: var(--green-pale); }
+.plan-card h3 { font-size: 16px; margin-bottom: 10px; }
+.plan-card .field { margin-bottom: 10px; }
+.plan-card-actions { display: flex; justify-content: flex-end; }
+
+/* Enquiries: split inbox layout — narrow message list on the left, selected message on the right */
+.inbox-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  min-height: 560px;
+}
+.inbox-list-col {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--divider);
+  min-width: 0;
+}
+.inbox-toolbar {
+  padding: 16px 18px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--green-pale);
+  border-bottom: 1px solid var(--divider);
+}
+.inbox-toolbar .input { width: 100%; }
+.inbox-list-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--divider);
+  font-size: 12px;
+  color: var(--text-grey);
+}
+.inbox-list-scroll {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 560px;
+}
+.inbox-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--divider);
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.inbox-item:hover { background: var(--green-pale); }
+.inbox-item.active { background: var(--green-light); }
+.inbox-item .row-check { margin-top: 3px; flex-shrink: 0; }
+.inbox-item-main { min-width: 0; flex: 1; }
+.inbox-item-row1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.inbox-item-name { font-family: var(--font-head); font-size: 13.5px; color: var(--text); font-weight: 600; }
+.inbox-item.unread .inbox-item-name { font-weight: 800; }
+.inbox-item-subject {
+  font-size: 13px;
+  color: var(--text);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.inbox-item.unread .inbox-item-subject { font-weight: 600; }
+.inbox-item-row2 { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; }
+.inbox-item-email { font-size: 11.5px; color: var(--text-grey); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.inbox-item-date { font-size: 11px; color: var(--text-grey); white-space: nowrap; flex-shrink: 0; }
+
+.inbox-detail-col { padding: 26px; min-width: 0; overflow-y: auto; max-height: 560px; }
+.inbox-detail-empty {
+  height: 100%;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--text-grey);
+  text-align: center;
+}
+.inbox-detail-empty .svg-icon { opacity: 0.4; }
+.inbox-detail-content.hidden, .inbox-detail-empty.hidden { display: none; }
+.inbox-detail-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 16px; }
+.inbox-detail-header h3 { font-size: 19px; }
+
+@media (max-width: 900px) {
+  .inbox-layout { grid-template-columns: 1fr; }
+  .inbox-list-col { border-right: none; border-bottom: 1px solid var(--divider); }
+  .inbox-list-scroll { max-height: 340px; }
+  .inbox-detail-col { max-height: none; }
+}
+
+/* Detail drawers (enquiry / farm detail read-out) */
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 20px; margin-bottom: 6px; }
+.detail-item span { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-grey); margin-bottom: 3px; }
+.detail-item strong { font-size: 14px; color: var(--text); }
+.detail-message { background: var(--green-pale); border-radius: var(--radius-md); padding: 14px 16px; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+
+/* Reports page */
+.report-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; padding: 22px 26px; }
+.report-tile {
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  background: var(--white);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+}
+.report-tile:hover { border-color: var(--green); box-shadow: var(--shadow); transform: translateY(-2px); }
+.report-tile.active { border-color: var(--green-dark); background: var(--green-light); }
+.report-tile h3 { font-size: 15px; margin-bottom: 4px; }
+.report-tile p { font-size: 12.5px; color: var(--text-grey); }
+.report-range { display: flex; flex-wrap: wrap; align-items: end; gap: 14px; padding: 0 26px 22px; }
+.report-range .field { margin: 0; min-width: 160px; }
+
+/* Recent-activity list (Dashboard overview) */
+.activity-list { padding: 6px 26px 22px; display: flex; flex-direction: column; gap: 2px; }
+.activity-row { display: flex; justify-content: space-between; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--divider); font-size: 13.5px; }
+.activity-row:last-child { border-bottom: none; }
+.activity-row .activity-main strong { display: block; color: var(--text); }
+.activity-row .activity-main span { font-size: 12px; color: var(--text-grey); }
+.activity-row time { font-size: 12px; color: var(--text-grey); white-space: nowrap; }
+
+textarea.input { resize: vertical; min-height: 90px; padding-top: 10px; }
+.field-hint { font-size: 12px; color: var(--text-grey); margin-top: 4px; }
+.badge.Blocked, .badge.Rejected { color: var(--error); background: rgba(229, 57, 53, 0.1); }
+.badge.Expired { color: var(--text-grey); background: rgba(124, 139, 124, 0.14); }
+.badge.Read { color: var(--text-grey); background: rgba(124, 139, 124, 0.14); }
+.badge.New { color: #c77800; background: rgba(255, 167, 38, 0.16); }
+.badge.Paid { color: var(--success); background: rgba(67, 160, 71, 0.12); }
+.badge.Failed { color: var(--error); background: rgba(229, 57, 53, 0.1); }
+.badge.Refunded { color: var(--info); background: rgba(25, 118, 210, 0.1); }
+.form-note { font-size: 12.5px; color: var(--text-grey); background: var(--green-pale); border-radius: var(--radius-md); padding: 10px 14px; margin-bottom: 16px; }
