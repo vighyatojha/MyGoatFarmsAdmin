@@ -12,14 +12,14 @@ const ICONS = {
 };
 
 const NAV = [
-  { key: 'dashboard', href: '/admin/dashboard.html', label: 'Dashboard' },
-  { key: 'farms', href: '/admin/farms.html', label: 'Farms' },
-  { key: 'subscriptions', href: '/admin/subscriptions.html', label: 'Subscriptions' },
-  { key: 'payments', href: '/admin/payments.html', label: 'Payments' },
-  { key: 'earnings', href: '/admin/earnings.html', label: 'Earnings' },
-  { key: 'enquiries', href: '/admin/enquiries.html', label: 'Enquiries' },
-  { key: 'reports', href: '/admin/reports.html', label: 'Reports' },
-  { key: 'settings', href: '/admin/settings.html', label: 'Settings' },
+  { key: 'dashboard', href: '../admin/dashboard.html', label: 'Dashboard' },
+  { key: 'farms', href: '../admin/farms.html', label: 'Farms' },
+  { key: 'subscriptions', href: '../admin/subscriptions.html', label: 'Subscriptions' },
+  { key: 'payments', href: '../admin/payments.html', label: 'Payments' },
+  { key: 'earnings', href: '../admin/earnings.html', label: 'Earnings' },
+  { key: 'enquiries', href: '../admin/enquiries.html', label: 'Enquiries' },
+  { key: 'reports', href: '../admin/reports.html', label: 'Reports' },
+  { key: 'settings', href: '../admin/settings.html', label: 'Settings' },
 ];
 
 const icon = (name) => `<svg class="svg-icon" viewBox="0 0 24 24">${ICONS[name] || ''}</svg>`;
@@ -35,7 +35,7 @@ function sidebarHtml(active) {
 
   return `
     <a class="brand sidebar-brand" href="/">
-      <span class="logo-ring"><img src="/assets/img/logo.png" alt="" width="36" height="36"></span>
+      <span class="logo-ring"><img src="../assets/img/logo.png" alt="" width="36" height="36"></span>
       <span class="brand-name">My Goat Farms</span>
     </a>
     <div class="side-label">ADMINISTRATION</div>
