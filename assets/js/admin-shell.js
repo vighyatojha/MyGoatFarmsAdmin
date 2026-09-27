@@ -60,6 +60,44 @@ function topbarHtml(title, subtitle, email) {
     </div>`;
 }
 
+
+function setupMobileNavigation() {
+  const sidebar = document.getElementById('sidebarRoot');
+  const button = document.getElementById('mobileMenuBtn');
+  if (!sidebar || !button || button.dataset.bound === '1') return;
+
+  button.dataset.bound = '1';
+
+  let backdrop = document.getElementById('mobileNavBackdrop');
+  if (!backdrop) {
+    backdrop = document.createElement('div');
+    backdrop.id = 'mobileNavBackdrop';
+    backdrop.className = 'mobile-nav-backdrop';
+    document.body.appendChild(backdrop);
+  }
+
+  const close = () => {
+    sidebar.classList.remove('mobile-open');
+    backdrop.classList.remove('show');
+    document.body.classList.remove('mobile-nav-open');
+    button.setAttribute('aria-expanded', 'false');
+  };
+
+  button.addEventListener('click', () => {
+    const open = !sidebar.classList.contains('mobile-open');
+    sidebar.classList.toggle('mobile-open', open);
+    backdrop.classList.toggle('show', open);
+    document.body.classList.toggle('mobile-nav-open', open);
+    button.setAttribute('aria-expanded', String(open));
+  });
+
+  backdrop.addEventListener('click', close);
+  sidebar.querySelectorAll('a.side-link').forEach((link) => link.addEventListener('click', close));
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 768) close();
+  });
+}
+
 /**
  * Mounts the shared sidebar (#sidebarRoot) and topbar (#topbarRoot) right
  * away — the nav itself doesn't need to know who's signed in, so it no
@@ -91,7 +129,7 @@ export async function initAdminShell({ active, title, subtitle }) {
     throw err;
   }
 
-  if (topbarRoot) topbarRoot.innerHTML = topbarHtml(title, subtitle, user.email);
+  if (topbarRoot) topbarRoot.innerHTML = topbarHtml(title, subtitle, user.email);\n  setupMobileNavigation();
   document.getElementById('shellLogout')?.addEventListener('click', logout);
 
   return user;
