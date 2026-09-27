@@ -210,21 +210,21 @@ export async function unblockFarm(id) {
 
 export async function bulkBlockFarms(ids, reason, adminEmail) {
   const ts = nowIso();
-  let count = 0;
-  // Each write must independently satisfy the rules' "only subscriptionInfo
-  // changed" check, so these can't be combined with unrelated writes in one
-  // batch entry — but a batch is still used so they commit atomically together.
+  // The old version did `await getDoc(ref)` inside a for-loop — one read per
+  // id, in series, before any write started. Firing all the reads at once
+  // with Promise.all() turns N sequential round-trips into 1 round-trip's
+  // worth of wall-clock time (Firestore still runs them in parallel).
+  const snaps = await Promise.all(ids.map((id) => getDoc(doc(db, 'farms', id))));
+
   const batch = writeBatch(db);
-  for (const id of ids) {
-    const ref = doc(db, 'farms', id);
-    // eslint-disable-next-line no-await-in-loop
-    const snap = await getDoc(ref);
-    if (snap.exists()) {
-      const prevInfo = snap.data().subscriptionInfo || {};
-      batch.update(ref, { subscriptionInfo: { ...prevInfo, blocked: { blocked: true, reason: reason || '', blockedAt: ts, blockedBy: adminEmail } } });
-      count += 1;
-    }
-  }
+  let count = 0;
+  ids.forEach((id, i) => {
+    const snap = snaps[i];
+    if (!snap.exists()) return;
+    const prevInfo = snap.data().subscriptionInfo || {};
+    batch.update(doc(db, 'farms', id), { subscriptionInfo: { ...prevInfo, blocked: { blocked: true, reason: reason || '', blockedAt: ts, blockedBy: adminEmail } } });
+    count += 1;
+  });
   if (count) await batch.commit();
   return count;
 }
@@ -347,31 +347,27 @@ export async function createEnquiry({ name, email, phone, subject, message }) {
 }
 
 export async function markEnquiriesRead(ids) {
+  const snaps = await Promise.all(ids.map((id) => getDoc(doc(db, 'enquiries', id))));
   const batch = writeBatch(db);
   let count = 0;
-  for (const id of ids) {
-    const ref = doc(db, 'enquiries', id);
-    // eslint-disable-next-line no-await-in-loop
-    if ((await getDoc(ref)).exists()) {
-      batch.update(ref, { status: 'Read' });
-      count += 1;
-    }
-  }
+  ids.forEach((id, i) => {
+    if (!snaps[i].exists()) return;
+    batch.update(doc(db, 'enquiries', id), { status: 'Read' });
+    count += 1;
+  });
   if (count) await batch.commit();
   return count;
 }
 
 export async function deleteEnquiries(ids) {
+  const snaps = await Promise.all(ids.map((id) => getDoc(doc(db, 'enquiries', id))));
   const batch = writeBatch(db);
   let count = 0;
-  for (const id of ids) {
-    const ref = doc(db, 'enquiries', id);
-    // eslint-disable-next-line no-await-in-loop
-    if ((await getDoc(ref)).exists()) {
-      batch.delete(ref);
-      count += 1;
-    }
-  }
+  ids.forEach((id, i) => {
+    if (!snaps[i].exists()) return;
+    batch.delete(doc(db, 'enquiries', id));
+    count += 1;
+  });
   if (count) await batch.commit();
   return count;
 }
