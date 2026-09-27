@@ -35,7 +35,7 @@ export function requireAdmin() {
       if (!user) {
         settled = true;
         clearTimeout(timeoutId);
-        location.href = '/admin/';
+        location.href = './';
         return;
       }
       try {
@@ -45,7 +45,7 @@ export function requireAdmin() {
         clearTimeout(timeoutId);
         if (!adminDoc.exists()) {
           await signOut(auth);
-          location.href = '/admin/';
+          location.href = './';
           return;
         }
         resolve(user);
@@ -53,7 +53,7 @@ export function requireAdmin() {
         if (settled) return;
         settled = true;
         clearTimeout(timeoutId);
-        location.href = '/admin/';
+        location.href = './';
       }
     });
   });
@@ -61,5 +61,5 @@ export function requireAdmin() {
 
 export async function logout() {
   await signOut(auth);
-  location.href = '/admin/';
+  location.href = './';
 }
