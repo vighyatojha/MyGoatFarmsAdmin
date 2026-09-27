@@ -50,7 +50,6 @@ function sidebarHtml(active) {
 
 function topbarHtml(title, subtitle, email) {
   return `
-    <button class="mobile-menu-btn" id="mobileMenuBtn" type="button" aria-label="Open navigation" aria-expanded="false"><svg class="svg-icon" viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg></button>
     <div>
       <h1>${title}</h1>
       ${subtitle ? `<p>${subtitle}</p>` : ''}
@@ -59,44 +58,6 @@ function topbarHtml(title, subtitle, email) {
       <div class="admin-avatar">${(email || 'A')[0].toUpperCase()}</div>
       <div class="admin-profile-info"><div>${email || 'Admin'}</div><span>Administrator</span></div>
     </div>`;
-}
-
-
-function setupMobileNavigation() {
-  const sidebar = document.getElementById('sidebarRoot');
-  const button = document.getElementById('mobileMenuBtn');
-  if (!sidebar || !button || button.dataset.bound === '1') return;
-
-  button.dataset.bound = '1';
-
-  let backdrop = document.getElementById('mobileNavBackdrop');
-  if (!backdrop) {
-    backdrop = document.createElement('div');
-    backdrop.id = 'mobileNavBackdrop';
-    backdrop.className = 'mobile-nav-backdrop';
-    document.body.appendChild(backdrop);
-  }
-
-  const close = () => {
-    sidebar.classList.remove('mobile-open');
-    backdrop.classList.remove('show');
-    document.body.classList.remove('mobile-nav-open');
-    button.setAttribute('aria-expanded', 'false');
-  };
-
-  button.addEventListener('click', () => {
-    const open = !sidebar.classList.contains('mobile-open');
-    sidebar.classList.toggle('mobile-open', open);
-    backdrop.classList.toggle('show', open);
-    document.body.classList.toggle('mobile-nav-open', open);
-    button.setAttribute('aria-expanded', String(open));
-  });
-
-  backdrop.addEventListener('click', close);
-  sidebar.querySelectorAll('a.side-link').forEach((link) => link.addEventListener('click', close));
-  window.addEventListener('resize', () => {
-    if (window.innerWidth > 768) close();
-  });
 }
 
 /**
@@ -118,7 +79,6 @@ export async function initAdminShell({ active, title, subtitle }) {
 
   if (sidebarRoot) sidebarRoot.innerHTML = sidebarHtml(active);
   if (topbarRoot) topbarRoot.innerHTML = topbarHtml(title, subtitle, null);
-  setupMobileNavigation();
   document.getElementById('shellLogout')?.addEventListener('click', logout);
 
   let user;
@@ -132,7 +92,6 @@ export async function initAdminShell({ active, title, subtitle }) {
   }
 
   if (topbarRoot) topbarRoot.innerHTML = topbarHtml(title, subtitle, user.email);
-  setupMobileNavigation();
   document.getElementById('shellLogout')?.addEventListener('click', logout);
 
   return user;
