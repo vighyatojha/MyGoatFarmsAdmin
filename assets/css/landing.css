@@ -1,5 +1,3 @@
-@import url("./mobile.css");
-
 /* Public landing page additions (builds on styles.css tokens) */
 .site-header nav { display: flex; align-items: center; gap: 26px; }
 .nav-link { font-weight: 500; color: var(--text); }
