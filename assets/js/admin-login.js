@@ -12,7 +12,7 @@ onAuthStateChanged(auth, async (user) => {
   if (!user) return;
   try {
     const adminDoc = await getDoc(doc(db, 'admins', user.uid));
-    if (adminDoc.exists()) location.href = '/admin/dashboard.html';
+    if (adminDoc.exists()) location.href = 'dashboard.html';
   } catch { /* stay on the login page */ }
 });
 
@@ -51,7 +51,7 @@ $('loginForm').addEventListener('submit', async (e) => {
       await signOut(auth);
       throw { code: 'not-admin' };
     }
-    location.href = '/admin/dashboard.html';
+    location.href = 'dashboard.html';
   } catch (err) {
     errorBox.textContent = err.code === 'not-admin' ? 'This account is not authorized as an admin.' : friendlyError(err.code);
     btn.disabled = false;
