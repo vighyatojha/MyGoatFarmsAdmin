@@ -131,7 +131,8 @@ export async function initAdminShell({ active, title, subtitle }) {
     throw err;
   }
 
-  if (topbarRoot) topbarRoot.innerHTML = topbarHtml(title, subtitle, user.email);\n  setupMobileNavigation();
+  if (topbarRoot) topbarRoot.innerHTML = topbarHtml(title, subtitle, user.email);
+  setupMobileNavigation();
   document.getElementById('shellLogout')?.addEventListener('click', logout);
 
   return user;
