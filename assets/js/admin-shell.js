@@ -32,6 +32,7 @@ function sidebarHtml(active) {
   ).join('');
 
   return `
+    <button class="mobile-sidebar-close" id="mobileSidebarClose" type="button" aria-label="Close navigation">×</button>
     <a class="brand sidebar-brand" href="/">
       <span class="logo-ring"><img src="../assets/img/logo.png" alt="" width="36" height="36"></span>
       <span class="brand-name">My Goat Farms</span>
@@ -48,7 +49,10 @@ function sidebarHtml(active) {
 
 function topbarHtml(title, subtitle, email) {
   return `
-    <div>
+    <button class="mobile-menu-toggle" id="mobileMenuToggle" type="button" aria-label="Open navigation" aria-expanded="false">
+      <svg class="svg-icon" viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+    </button>
+    <div class="admin-top-copy">
       <h1>${title}</h1>
       ${subtitle ? `<p>${subtitle}</p>` : ''}
     </div>
@@ -77,7 +81,19 @@ export async function initAdminShell({ active, title, subtitle }) {
 
   if (sidebarRoot) sidebarRoot.innerHTML = sidebarHtml(active);
   if (topbarRoot) topbarRoot.innerHTML = topbarHtml(title, subtitle, null);
+
+  const setSidebarOpen = (open) => {
+    document.body.classList.toggle('sidebar-open', open);
+    document.getElementById('mobileMenuToggle')?.setAttribute('aria-expanded', String(open));
+  };
   document.getElementById('shellLogout')?.addEventListener('click', logout);
+  document.getElementById('mobileMenuToggle')?.addEventListener('click', () => {
+    setSidebarOpen(!document.body.classList.contains('sidebar-open'));
+  });
+  document.getElementById('mobileSidebarClose')?.addEventListener('click', () => setSidebarOpen(false));
+  sidebarRoot?.querySelectorAll('.side-link[href]').forEach((link) => {
+    link.addEventListener('click', () => setSidebarOpen(false));
+  });
 
   let user;
   try {
@@ -91,6 +107,18 @@ export async function initAdminShell({ active, title, subtitle }) {
 
   if (topbarRoot) topbarRoot.innerHTML = topbarHtml(title, subtitle, user.email);
   document.getElementById('shellLogout')?.addEventListener('click', logout);
+  document.getElementById('mobileMenuToggle')?.addEventListener('click', () => {
+    const open = !document.body.classList.contains('sidebar-open');
+    document.body.classList.toggle('sidebar-open', open);
+    document.getElementById('mobileMenuToggle')?.setAttribute('aria-expanded', String(open));
+  });
+  document.getElementById('mobileSidebarClose')?.addEventListener('click', () => {
+    document.body.classList.remove('sidebar-open');
+    document.getElementById('mobileMenuToggle')?.setAttribute('aria-expanded', 'false');
+  });
+  sidebarRoot?.querySelectorAll('.side-link[href]').forEach((link) => {
+    link.addEventListener('click', () => document.body.classList.remove('sidebar-open'));
+  });
 
   return user;
 }
