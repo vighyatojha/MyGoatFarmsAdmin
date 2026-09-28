@@ -36,7 +36,7 @@
 
     <section class="panel">
       <div class="panel-head">
-        <div><h2>Registered Goat Farms</h2><p>Farms are created by the app at sign-up — this panel only manages their subscription status.</p></div>
+        <div><h2>Registered Goat Farms</h2><p>Operational overview and access management. Financial information is not shown here.</p></div>
       </div>
 
       <div class="toolbar toolbar-stacked">
@@ -56,7 +56,7 @@
           <thead>
             <tr>
               <th class="check-cell"><input type="checkbox" class="head-check" id="headCheck" aria-label="Select all"></th>
-              <th>Farm</th><th>Owner / Contact</th><th>Subscription</th><th>Status</th><th>Actions</th>
+              <th>Farm</th><th>Owner / Contact</th><th>Partners</th><th>Palai Goats</th><th>Trading Goats</th><th>Status</th><th>Actions</th>
             </tr>
           </thead>
           <tbody id="farmTable"></tbody>
@@ -87,10 +87,7 @@
             <option>Paid</option><option>Pending</option><option>Failed</option><option>Refunded</option>
           </select>
         </div>
-        <div class="form-row">
-          <div class="field"><label class="field-label" for="subPaymentDate">Payment Date</label><input id="subPaymentDate" class="input" type="date"></div>
-          <div class="field"><label class="field-label" for="subPaymentRef">Payment Reference</label><input id="subPaymentRef" class="input" maxlength="120" placeholder="TXN / UTR number"></div>
-        </div>
+        <div class="field"><label class="field-label" for="subDuration">Duration (days)</label><input id="subDuration" class="input" type="number" min="1" required></div>
         <div class="modal-actions">
           <button type="button" class="btn btn-outline" id="cancelSubModal">Cancel</button>
           <button type="submit" class="btn btn-primary" id="saveSub">Confirm</button>
