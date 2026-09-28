@@ -1,7 +1,7 @@
 import { initAdminShell, toast, esc, fmtDate } from './admin-shell.js';
 // Cache-bust the Firestore service so admin browsers do not keep an older
 // approve/renew implementation after a deployment.
-import { watchFarms, getAllFarmOperationalStats, approveFarm, renewFarm, rejectFarm, blockFarm, unblockFarm, deleteFarm, getPlans } from './db.js?v=20260928-5';
+import { watchFarms, getAllFarmOperationalStats, approveFarm, renewFarm, rejectFarm, blockFarm, unblockFarm, deleteFarm, getPlans } from './db.js?v=20260929-1';
 
 const adminUserPromise = initAdminShell({ active: 'farms', title: 'Farms', subtitle: 'Farm operations and subscription management.' });
 const $ = (id) => document.getElementById(id);
@@ -137,11 +137,15 @@ $('farmCards').addEventListener('click', async (e) => {
       'Delete "' + (farm.farmName || farm.id) + '" (' + farm.id + ')?\n\nThis permanently removes the farm and its stored farm data. This action cannot be undone.'
     );
     if (!confirmed) return;
+    const originalLabel = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Deleting…';
     try {
       await deleteFarm(farm.id);
       toast('Farm deleted.');
     } catch (err) {
       toast(err?.message || 'Could not delete farm.', true);
+    } finally {
+      btn.disabled = false; btn.textContent = originalLabel;
     }
   }
 });
