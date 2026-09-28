@@ -1,5 +1,5 @@
 import { initAdminShell, toast, esc } from './admin-shell.js';
-import { getPlans, savePlans, getAdminContact, saveAdminContact } from './db.js';
+import { getPlans, savePlans, getAdminContact, saveAdminContact } from './db.js?v=20260928-5';
 
 // Not awaited here on purpose: the shell paints immediately inside
 // initAdminShell(), and load() below fetches the subscription plans right
