@@ -240,45 +240,75 @@ export async function approveFarm(id, { plan, durationDays, amount, paymentStatu
   return getFarm(id);
 }
 
-export async function renewFarm(id, { plan, durationDays, amount, paymentStatus, paymentDate, paymentReference }) {
+export async function renewFarm(id, { plan, durationDays, amount, paymentStatus, paymentDate, paymentReference }, adminEmail) {
   const ref = doc(db, 'farms', id);
   const snap = await getDoc(ref);
   if (!snap.exists()) return null;
+
   const d = snap.data();
   const prevInfo = d.subscriptionInfo || {};
 
   const now = Date.now();
-  const base = prevInfo.expiryDate && prevInfo.expiryDate > now ? prevInfo.expiryDate : now;
-  const expiryDate = base + Number(durationDays) * DAY_MS;
+  const safeDurationDays = Number(durationDays) || Number(prevInfo.durationDays) || 1;
+  const base =
+    prevInfo.expiryDate && Number(prevInfo.expiryDate) > now
+      ? Number(prevInfo.expiryDate)
+      : now;
+  const expiryDate = base + safeDurationDays * DAY_MS;
   const ts = nowIso();
+
+  // Renewal forms may currently provide only plan + duration.
+  // Firestore rejects undefined values, so never write undefined.
+  const safePlan = plan || prevInfo.plan || '';
+
+  const safeAmount = Number.isFinite(Number(amount))
+    ? Number(amount)
+    : Number(prevInfo.amount) || 0;
+
+  const safePaymentStatus =
+    paymentStatus ?? prevInfo.paymentStatus ?? 'Pending';
+
+  const safePaymentDate =
+    paymentDate || ts;
+
+  const safePaymentReference =
+    paymentReference || '';
 
   const info = {
     ...prevInfo,
     status: 'Active',
-    plan,
-    durationDays: Number(durationDays),
-    amount: Number(amount),
-    paymentStatus,
-    paymentDate: paymentDate || ts,
-    paymentReference: paymentReference || '',
+    plan: safePlan,
+    durationDays: safeDurationDays,
+    amount: safeAmount,
+    paymentStatus: safePaymentStatus,
+    paymentDate: safePaymentDate,
+    paymentReference: safePaymentReference,
+    renewalDate: ts,
+    renewedBy: adminEmail || prevInfo.renewedBy || '',
     expiryDate,
   };
 
   const batch = writeBatch(db);
-  batch.update(ref, { subscriptionInfo: info });
+
+  batch.update(ref, {
+    subscriptionInfo: info,
+  });
+
   batch.set(doc(subscriptionPaymentsCol), {
     farmId: id,
     farmName: d.farmName || id,
-    amount: Number(amount),
-    plan,
-    durationDays: Number(durationDays),
-    date: paymentDate || ts,
-    status: paymentStatus,
-    reference: paymentReference || '',
+    amount: safeAmount,
+    plan: safePlan,
+    durationDays: safeDurationDays,
+    date: safePaymentDate,
+    status: safePaymentStatus,
+    reference: safePaymentReference,
     type: 'renewal',
     createdAt: ts,
   });
+
   await batch.commit();
+
   return getFarm(id);
 }
 
