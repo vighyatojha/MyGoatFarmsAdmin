@@ -214,3 +214,58 @@ textarea.input { resize: vertical; min-height: 90px; padding-top: 10px; }
   .dashboard-tab { flex:1 0 auto; }
   .table-wrap { overflow-x:auto; }
 }
+
+/* Unified admin navigation: top bar only, no persistent side navigation. */
+.admin-page { display: block; min-height: 100vh; }
+.admin-main { margin-left: 0; width: 100%; padding: 0 4% 40px; }
+.admin-top {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  min-height: 76px;
+  margin: 0 -4% 30px;
+  padding: 12px 4%;
+  background: rgba(255,255,255,.96);
+  border-bottom: 1px solid var(--divider);
+  box-shadow: 0 2px 12px rgba(0,0,0,.04);
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+.admin-brand { display:flex; align-items:center; gap:10px; flex:0 0 auto; }
+.admin-brand .logo-ring { width:42px; height:42px; }
+.admin-nav { display:flex; align-items:center; gap:4px; flex:1; }
+.admin-nav-link {
+  display:inline-flex; align-items:center; gap:7px;
+  padding:10px 14px; border-radius:12px;
+  color:var(--text-grey); font-family:var(--font-head); font-weight:700;
+  font-size:14px; text-decoration:none; white-space:nowrap;
+}
+.admin-nav-link:hover { background:var(--green-pale); color:var(--green-dark); }
+.admin-nav-link.active { background:var(--green-light); color:var(--green-dark); }
+.admin-nav-link .svg-icon { width:17px; height:17px; }
+.admin-top-actions { display:flex; align-items:center; gap:10px; margin-left:auto; }
+.admin-logout {
+  min-height:40px; padding:0 15px; border:1px solid rgba(229,57,53,.25);
+  border-radius:12px; background:#fff; color:var(--error);
+  font-family:var(--font-head); font-weight:700; cursor:pointer;
+}
+.admin-logout:hover { background:#fff5f5; border-color:var(--error); }
+@media (max-width: 900px) {
+  .admin-top { gap:12px; overflow-x:auto; }
+  .admin-nav { order:3; flex-basis:100%; overflow-x:auto; }
+  .admin-top { flex-wrap:wrap; }
+  .admin-top-actions { margin-left:auto; }
+  .admin-profile-info { display:none; }
+  .admin-main { padding-left:3%; padding-right:3%; }
+  .admin-top { margin-left:-3%; margin-right:-3%; padding-left:3%; padding-right:3%; }
+}
+@media (max-width: 600px) {
+  .admin-brand .brand-name { display:none; }
+  .admin-top { min-height:64px; padding-top:8px; padding-bottom:8px; }
+  .admin-nav-link { padding:8px 10px; font-size:13px; }
+  .admin-logout { min-height:36px; padding:0 11px; font-size:12px; }
+  .summary-grid { grid-template-columns:1fr 1fr; gap:12px; }
+  .summary-card { padding:16px; }
+  .summary-card strong { font-size:26px; }
+}
