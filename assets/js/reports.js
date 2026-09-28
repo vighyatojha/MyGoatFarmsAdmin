@@ -1,9 +1,9 @@
 import { initAdminShell, toast, esc, fmtDate } from './admin-shell.js';
-import { listFarms, listPayments, listEnquiries } from './db.js';
+import { listFarms, listEnquiries, getFarmOperationalStats } from './db.js';
 
 // Not awaited: see dashboard.js/admin-shell.js — shell paints immediately,
 // this page's data fetches in parallel with the admin check.
-initAdminShell({ active: 'reports', title: 'Reports', subtitle: 'Farm, subscription, payment and enquiry reports.' });
+initAdminShell({ active: 'reports', title: 'Reports', subtitle: 'Farm, subscription status and enquiry reports.' });
 
 const $ = (id) => document.getElementById(id);
 
@@ -14,7 +14,7 @@ const REPORTS = {
     fetch: listFarms,
     columns: [
       ['id', 'Farm ID'], ['farmName', 'Farm Name'], ['ownerName', 'Owner'], ['mobileNumber', 'Mobile'],
-      ['email', 'Email'], ['address', 'Address'], ['status', 'Status'],
+      ['status', 'Status'], ['partnerCount', 'Partners'], ['palaiGoatCount', 'Palai Goats'], ['tradingGoatCount', 'Trading Goats'],
     ],
   },
   subscription: {
@@ -27,27 +27,6 @@ const REPORTS = {
       ['id', 'Farm ID'], ['farmName', 'Farm'], ['status', 'Status'],
       ['plan', 'Plan', (f) => f.subscription?.plan], ['startDate', 'Start', (f) => fmtDate(f.startDate)],
       ['expiryDate', 'Expiry', (f) => fmtDate(f.expiryDate)], ['daysLeft', 'Days Left'],
-    ],
-  },
-  payment: {
-    title: 'Payment Report',
-    desc: 'Every payment recorded against a subscription.',
-    fetch: listPayments,
-    dateField: 'date',
-    columns: [
-      ['id', 'Payment ID'], ['farmName', 'Farm'], ['plan', 'Plan'], ['amount', 'Amount'],
-      ['type', 'Type'], ['date', 'Date', (p) => fmtDate(p.date)], ['reference', 'Reference'], ['status', 'Status'],
-    ],
-  },
-  revenue: {
-    title: 'Revenue Report',
-    desc: 'Paid payments only — the earnings figures.',
-    fetch: listPayments,
-    dateField: 'date',
-    filter: (p) => p.status === 'Paid',
-    columns: [
-      ['id', 'Payment ID'], ['farmName', 'Farm'], ['plan', 'Plan'], ['amount', 'Amount'],
-      ['date', 'Date', (p) => fmtDate(p.date)],
     ],
   },
   enquiry: {
@@ -111,6 +90,11 @@ $('generateBtn').addEventListener('click', async () => {
   btn.textContent = 'Generating…';
   try {
     let data = await cfg.fetch();
+    if (cfg === REPORTS.farm) {
+      const results = await Promise.all(data.map(async (farm) => [farm.id, await getFarmOperationalStats(farm.id)]));
+      const statsByFarm = Object.fromEntries(results);
+      data = data.map((farm) => ({ ...farm, partnerCount: statsByFarm[farm.id]?.partners ?? 0, palaiGoatCount: statsByFarm[farm.id]?.palaiGoats ?? 0, tradingGoatCount: statsByFarm[farm.id]?.tradingGoats ?? 0 }));
+    }
     if (cfg.filter) data = data.filter(cfg.filter);
 
     const from = $('dateFrom').value ? new Date($('dateFrom').value).getTime() : null;
