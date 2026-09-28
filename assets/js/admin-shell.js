@@ -33,7 +33,7 @@ function sidebarHtml(active) {
 
   return `
     <button class="mobile-sidebar-close" id="mobileSidebarClose" type="button" aria-label="Close navigation">×</button>
-    <a class="brand sidebar-brand" href="/">
+    <a class="brand sidebar-brand" href="../index.html">
       <span class="logo-ring"><img src="../assets/img/logo.png" alt="" width="36" height="36"></span>
       <span class="brand-name">My Goat Farms</span>
     </a>
@@ -47,19 +47,93 @@ function sidebarHtml(active) {
     </div>`;
 }
 
+const MENU_ICON = '<svg class="svg-icon" viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>';
+const menuToggleHtml = () =>
+  `<button class="mobile-menu-toggle" id="mobileMenuToggle" type="button" aria-label="Open navigation" aria-expanded="false">${MENU_ICON}</button>`;
+
+const profileHtml = (email) => `
+    <div class="admin-avatar">${esc((email || 'A')[0].toUpperCase())}</div>
+    <div class="admin-profile-info"><div>${esc(email || 'Admin')}</div><span>Administrator</span></div>`;
+
 function topbarHtml(title, subtitle, email) {
   return `
-    <button class="mobile-menu-toggle" id="mobileMenuToggle" type="button" aria-label="Open navigation" aria-expanded="false">
-      <svg class="svg-icon" viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
-    </button>
+    ${menuToggleHtml()}
     <div class="admin-top-copy">
-      <h1>${title}</h1>
-      ${subtitle ? `<p>${subtitle}</p>` : ''}
+      <h1>${esc(title)}</h1>
+      ${subtitle ? `<p>${esc(subtitle)}</p>` : ''}
     </div>
-    <div class="admin-profile">
-      <div class="admin-avatar">${(email || 'A')[0].toUpperCase()}</div>
-      <div class="admin-profile-info"><div>${email || 'Admin'}</div><span>Administrator</span></div>
-    </div>`;
+    <div class="admin-profile">${profileHtml(email)}</div>`;
+}
+
+/**
+ * #topbarRoot is normally the whole <header>. On the Farms page it is only the
+ * small profile pill inside a custom header (search + actions), so there we
+ * render just the avatar/email and make sure the hamburger exists in the
+ * header, OUTSIDE the node we re-render.
+ */
+function renderTopbar(root, title, subtitle, email) {
+  if (!root) return;
+  if (root.classList.contains('admin-profile')) {
+    root.innerHTML = profileHtml(email);
+    if (!document.getElementById('mobileMenuToggle')) {
+      (root.closest('.admin-top') || root.parentElement).insertAdjacentHTML('afterbegin', menuToggleHtml());
+    }
+  } else {
+    root.innerHTML = topbarHtml(title, subtitle, email);
+  }
+}
+
+/* Sidebar drawer — one set of delegated listeners, bound once. Delegation is
+   what keeps the hamburger working even though the top bar is re-rendered. */
+function setSidebarOpen(open) {
+  document.body.classList.toggle('sidebar-open', open);
+  document.getElementById('mobileMenuToggle')?.setAttribute('aria-expanded', String(open));
+}
+let shellBound = false;
+function bindShellEvents() {
+  if (shellBound) return;
+  shellBound = true;
+  const isOpen = () => document.body.classList.contains('sidebar-open');
+
+  document.addEventListener('click', (e) => {
+    const t = e.target;
+    if (!(t instanceof Element)) return;
+    if (t.closest('#mobileMenuToggle')) return setSidebarOpen(!isOpen());
+    if (t.closest('#mobileSidebarClose')) return setSidebarOpen(false);
+    if (t.closest('#shellLogout')) return logout();
+    if (isOpen() && (t.closest('.side-link[href]') || !t.closest('#sidebarRoot'))) setSidebarOpen(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isOpen()) setSidebarOpen(false);
+  });
+  window.matchMedia('(min-width: 1025px)').addEventListener('change', (e) => {
+    if (e.matches) setSidebarOpen(false);
+  });
+}
+
+/* Tables collapse into stacked cards on phones. The rows are rendered by each
+   page's own JS, so tag every <td> with its column title generically here. */
+function watchTableLabels() {
+  const label = () => {
+    document.querySelectorAll('.table-wrap table').forEach((table) => {
+      const heads = [...table.querySelectorAll('thead th')].map((th) => th.textContent.trim());
+      table.querySelectorAll('tbody tr').forEach((tr) => {
+        [...tr.children].forEach((td, i) => {
+          if (td.hasAttribute('colspan') || !heads[i]) return;
+          if (td.dataset.label !== heads[i]) td.dataset.label = heads[i];
+        });
+      });
+    });
+  };
+  let queued = false;
+  const schedule = () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => { queued = false; label(); });
+  };
+  label();
+  const main = document.querySelector('.admin-main');
+  if (main) new MutationObserver(schedule).observe(main, { childList: true, subtree: true });
 }
 
 /**
@@ -80,20 +154,9 @@ export async function initAdminShell({ active, title, subtitle }) {
   const topbarRoot = document.getElementById('topbarRoot');
 
   if (sidebarRoot) sidebarRoot.innerHTML = sidebarHtml(active);
-  if (topbarRoot) topbarRoot.innerHTML = topbarHtml(title, subtitle, null);
-
-  const setSidebarOpen = (open) => {
-    document.body.classList.toggle('sidebar-open', open);
-    document.getElementById('mobileMenuToggle')?.setAttribute('aria-expanded', String(open));
-  };
-  document.getElementById('shellLogout')?.addEventListener('click', logout);
-  document.getElementById('mobileMenuToggle')?.addEventListener('click', () => {
-    setSidebarOpen(!document.body.classList.contains('sidebar-open'));
-  });
-  document.getElementById('mobileSidebarClose')?.addEventListener('click', () => setSidebarOpen(false));
-  sidebarRoot?.querySelectorAll('.side-link[href]').forEach((link) => {
-    link.addEventListener('click', () => setSidebarOpen(false));
-  });
+  renderTopbar(topbarRoot, title, subtitle, null);
+  bindShellEvents();
+  watchTableLabels();
 
   let user;
   try {
@@ -105,8 +168,7 @@ export async function initAdminShell({ active, title, subtitle }) {
     throw err;
   }
 
-  if (topbarRoot) topbarRoot.innerHTML = topbarHtml(title, subtitle, user.email);
-  document.getElementById('shellLogout')?.addEventListener('click', logout);
+  renderTopbar(topbarRoot, title, subtitle, user.email);
   return user;
 }
 
