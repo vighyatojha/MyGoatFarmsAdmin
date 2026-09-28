@@ -85,10 +85,6 @@ function openSubModal(f) {
   const firstPlan = plans[0];
   $('subPlan').value = f.subscription?.plan || firstPlan?.name || '';
   $('subDuration').value = firstPlan?.days || f.subscription?.durationDays || 365;
-  $('subAmount').value = firstPlan?.amount || f.subscription?.amount || '';
-  $('subPaymentStatus').value = 'Paid';
-  $('subPaymentDate').value = new Date().toISOString().slice(0, 10);
-  $('subPaymentRef').value = '';
   $('subModal').classList.remove('hidden');
 }
 const closeSubModal = () => $('subModal').classList.add('hidden');
@@ -97,7 +93,6 @@ $('cancelSubModal').addEventListener('click', closeSubModal);
 $('subPlan').addEventListener('change', (e) => {
   const opt = e.target.selectedOptions[0];
   if (opt?.dataset.days) $('subDuration').value = opt.dataset.days;
-  if (opt?.dataset.amount) $('subAmount').value = opt.dataset.amount;
 });
 
 $('subTable').addEventListener('click', (e) => {
@@ -113,10 +108,6 @@ $('subForm').addEventListener('submit', async (e) => {
   const body = {
     plan: $('subPlan').value || 'Custom Plan',
     durationDays: Number($('subDuration').value) || 1,
-    amount: Number($('subAmount').value) || 0,
-    paymentStatus: $('subPaymentStatus').value,
-    paymentDate: $('subPaymentDate').value,
-    paymentReference: $('subPaymentRef').value.trim(),
   };
   const btn = $('saveSub');
   btn.disabled = true;
