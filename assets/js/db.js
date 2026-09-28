@@ -1,8 +1,12 @@
-import { db, functions } from './firebase-config.js?v=20260928-2';
-import { httpsCallable } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-functions.js';
+import { db, app } from './firebase-config.js?v=20260928-2';
+import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-functions.js';
+import { explainCallableError } from './errors.js';
 import {
   collection, collectionGroup, doc, getDoc, getDocs, addDoc, setDoc, writeBatch, onSnapshot, query, where,
 } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js';
+
+// Same region the deleteFarm Cloud Function is pinned to (functions/index.js).
+const functions = getFunctions(app, 'us-central1');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const nowIso = () => new Date().toISOString();
@@ -333,10 +337,18 @@ export async function deleteFarm(id) {
   const farmId = String(id || '').trim();
   if (!farmId) throw new Error('Farm ID is required.');
 
-  const callable = httpsCallable(functions, 'deleteFarm');
-  await callable({ farmId });
-
-  return true;
+  try {
+    // The function is allowed up to 540s (recursive delete of a big farm), but
+    // the SDK's default client timeout is 70s — match it so we don't give up early.
+    const callable = httpsCallable(functions, 'deleteFarm', { timeout: 540000 });
+    const res = await callable({ farmId });
+    if (res?.data?.success === false) throw new Error('The server did not confirm the deletion.');
+    return true;
+  } catch (err) {
+    const wrapped = new Error(explainCallableError(err, 'Could not delete farm.'));
+    wrapped.code = err?.code;
+    throw wrapped;
+  }
 }
 
 export async function rejectFarm(id, reason, adminEmail) {
