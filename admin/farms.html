@@ -4,64 +4,64 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
-  <title>Farm Management · My Goat Farms Admin</title>
+  <title>Farms · My Goat Farms Admin</title>
   <link rel="icon" type="image/png" href="../assets/img/favicon.png">
   <link rel="stylesheet" href="../assets/css/styles.css">
   <link rel="stylesheet" href="../assets/css/admin.css">
 </head>
-<body class="admin-page">
+<body class="admin-page farms-page">
   <aside class="sidebar" id="sidebarRoot"></aside>
 
   <main class="admin-main">
-    <header class="admin-top" id="topbarRoot"></header>
+    <header class="admin-top farms-top">
+      <div class="farms-top-search">
+        <span class="farms-search-icon">⌕</span>
+        <input id="search" class="farms-search" type="search" placeholder="Search farms, owners, Farm IDs…" aria-label="Search farms">
+      </div>
+      <div class="farms-top-actions">
+        <span class="sync-label" id="syncStatus">Syncing…</span>
+        <button class="icon-action" id="refreshCounts" type="button" title="Refresh farm statistics" aria-label="Refresh farm statistics">↻</button>
+        <div class="admin-profile" id="topbarRoot"></div>
+      </div>
+    </header>
 
-    <section class="summary-grid" aria-label="Summary">
-      <div class="summary-card">
-        <div class="summary-card-header"><span>Total Farms</span><div class="icon-chip teal"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div></div>
-        <strong id="totalFarms">0</strong><small>Registered in the app</small>
-      </div>
-      <div class="summary-card">
-        <div class="summary-card-header"><span>Pending Approval</span><div class="icon-chip orange"><svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div>
-        <strong id="pendingFarms">0</strong><small>Needs review</small>
-      </div>
-      <div class="summary-card">
-        <div class="summary-card-header"><span>Active Farms</span><div class="icon-chip"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div></div>
-        <strong id="activeFarms">0</strong><small>Currently operational</small>
-      </div>
-      <div class="summary-card">
-        <div class="summary-card-header"><span>Blocked Farms</span><div class="icon-chip purple"><svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></div></div>
-        <strong id="blockedFarms">0</strong><small>Access suspended</small>
+    <section class="farms-heading">
+      <div>
+        <div class="farms-title-row">
+          <h1>Farms</h1>
+          <span class="total-units" id="totalUnits">0 Total Units</span>
+        </div>
+        <p>Farms are created by the app at sign-up. Manage subscriptions, partners, Palai goats and Trading goats from one place.</p>
       </div>
     </section>
 
-    <section class="panel">
-      <div class="panel-head">
-        <div><h2>Registered Goat Farms</h2><p>Farms are created by the app at sign-up — this panel only manages their subscription status.</p></div>
+    <section class="farms-toolbar">
+      <div class="farms-search-mobile">
+        <span>⌕</span>
+        <input id="searchMobile" type="search" placeholder="Search name, owner, mobile, Farm ID…" aria-label="Search farms">
       </div>
+      <div class="farms-filters" id="statusPills"></div>
+      <button class="refresh-counts" id="refreshCounts2" type="button"><span>↻</span> Refresh counts</button>
+    </section>
 
-      <div class="toolbar toolbar-stacked">
-        <input id="search" class="input" type="search" placeholder="Search by farm name, owner, mobile or address…" aria-label="Search farms">
-        <div class="filter-pills" id="statusPills"></div>
-      </div>
+    <section class="farm-card-grid" id="farmCards" aria-live="polite"></section>
 
-      <div class="select-bar" id="selectBar">
-        <span id="selectCount">0 selected</span>
-        <div class="select-bar-actions">
-          <button class="btn btn-outline btn-sm" id="bulkBlockBtn" type="button">Block Selected</button>
-        </div>
+    <section class="farms-summary-strip">
+      <div class="summary-mini">
+        <span class="summary-mini-icon">♟</span>
+        <div><strong id="sumGoats">0</strong><small>Total Palai &amp; Trading goats</small></div>
       </div>
-
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th class="check-cell"><input type="checkbox" class="head-check" id="headCheck" aria-label="Select all"></th>
-              <th>Farm</th><th>Owner / Contact</th><th>Subscription</th><th>Status</th><th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="farmTable"></tbody>
-        </table>
+      <div class="summary-mini">
+        <span class="summary-mini-icon orange">♙</span>
+        <div><strong id="sumPartners">0</strong><small>Verified partners</small></div>
       </div>
+      <div class="summary-mini">
+        <span class="summary-mini-icon">◷</span>
+        <div><strong id="sumHealthy">0%</strong><small>Healthy expiry retention</small></div>
+      </div>
+      <button class="export-card" id="exportCsv" type="button">
+        <span><strong>Export Directory</strong><small>CSV format</small></span><span class="download-icon">↓</span>
+      </button>
     </section>
   </main>
 
@@ -73,63 +73,44 @@
       <form id="subForm" novalidate>
         <input type="hidden" id="subFarmId">
         <p class="form-note" id="subNote">The subscription countdown starts on the date you approve this farm.</p>
-        <div class="field">
-          <label class="field-label" for="subPlan">Subscription Plan</label>
-          <select id="subPlan" class="select" required></select>
-        </div>
+        <div class="field"><label class="field-label" for="subPlan">Subscription Plan</label><select id="subPlan" class="select" required></select></div>
         <div class="form-row">
           <div class="field"><label class="field-label" for="subDuration">Duration (days)</label><input id="subDuration" class="input" type="number" min="1" required></div>
           <div class="field"><label class="field-label" for="subAmount">Amount (₹)</label><input id="subAmount" class="input" type="number" min="0" required></div>
         </div>
-        <div class="field">
-          <label class="field-label" for="subPaymentStatus">Payment Status</label>
-          <select id="subPaymentStatus" class="select">
-            <option>Paid</option><option>Pending</option><option>Failed</option><option>Refunded</option>
-          </select>
-        </div>
+        <div class="field"><label class="field-label" for="subPaymentStatus">Payment Status</label><select id="subPaymentStatus" class="select"><option>Paid</option><option>Pending</option><option>Failed</option><option>Refunded</option></select></div>
         <div class="form-row">
           <div class="field"><label class="field-label" for="subPaymentDate">Payment Date</label><input id="subPaymentDate" class="input" type="date"></div>
           <div class="field"><label class="field-label" for="subPaymentRef">Payment Reference</label><input id="subPaymentRef" class="input" maxlength="120" placeholder="TXN / UTR number"></div>
         </div>
-        <div class="modal-actions">
-          <button type="button" class="btn btn-outline" id="cancelSubModal">Cancel</button>
-          <button type="submit" class="btn btn-primary" id="saveSub">Confirm</button>
-        </div>
+        <div class="modal-actions"><button type="button" class="btn btn-outline" id="cancelSubModal">Cancel</button><button type="submit" class="btn btn-primary" id="saveSub">Confirm</button></div>
       </form>
     </div>
   </div>
 
-  <!-- Reject / Block (reason) -->
+  <!-- Reject / Block -->
   <div id="reasonModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="reasonModalTitle">
     <div class="modal-card">
       <button class="modal-close" id="closeReasonModal" type="button" aria-label="Close">&times;</button>
       <h2 id="reasonModalTitle">Block Farm</h2>
       <form id="reasonForm" novalidate>
-        <input type="hidden" id="reasonFarmId">
-        <input type="hidden" id="reasonAction">
-        <div class="field">
-          <label class="field-label" for="reasonText">Reason</label>
-          <textarea id="reasonText" class="input" maxlength="300" placeholder="Explain why (shown in the farm's history)"></textarea>
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn btn-outline" id="cancelReasonModal">Cancel</button>
-          <button type="submit" class="btn btn-danger-solid" id="confirmReason">Confirm</button>
-        </div>
+        <input type="hidden" id="reasonFarmId"><input type="hidden" id="reasonAction">
+        <div class="field"><label class="field-label" for="reasonText">Reason</label><textarea id="reasonText" class="input" maxlength="300" placeholder="Explain why"></textarea></div>
+        <div class="modal-actions"><button type="button" class="btn btn-outline" id="cancelReasonModal">Cancel</button><button type="submit" class="btn btn-danger-solid" id="confirmReason">Confirm</button></div>
       </form>
     </div>
   </div>
 
-  <!-- View farm detail -->
+  <!-- Farm details -->
   <div id="viewModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="viewModalTitle">
-    <div class="modal-card">
+    <div class="modal-card farm-detail-modal">
       <button class="modal-close" id="closeViewModal" type="button" aria-label="Close">&times;</button>
-      <h2 id="viewModalTitle">Farm Details</h2>
+      <div class="farm-detail-heading"><div class="avatar large" id="viewAvatar">F</div><div><h2 id="viewModalTitle">Farm Details</h2><span id="viewStatus"></span></div></div>
       <div class="detail-grid" id="viewBody"></div>
     </div>
   </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-
   <script type="module" src="../assets/js/farms.js"></script>
 </body>
 </html>
