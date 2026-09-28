@@ -179,7 +179,7 @@ export function toast(msg, isError = false) {
   t.classList.toggle('error', isError);
   t.classList.add('show');
   clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => t.classList.remove('show'), 3200);
+  toast.timer = setTimeout(() => t.classList.remove('show'), Math.min(9000, Math.max(3200, String(msg).length * 55)));
 }
 
 export const esc = (s) =>
