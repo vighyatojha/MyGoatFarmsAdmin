@@ -185,22 +185,39 @@ export async function approveFarm(id, { plan, durationDays, amount, paymentStatu
 
   const now = new Date();
   const approvalDate = now.toISOString();
-  const expiryDate = now.getTime() + Number(durationDays) * DAY_MS;
+  const safeDurationDays = Number(durationDays) || 1;
+  const expiryDate = now.getTime() + safeDurationDays * DAY_MS;
   const prevInfo = snap.data().subscriptionInfo || {};
+
+  // The approval screen currently supplies plan + duration only.
+  // Firestore rejects undefined field values, so preserve existing payment
+  // values when present and otherwise use safe defaults.
+  const safeAmount = Number.isFinite(Number(amount))
+    ? Number(amount)
+    : Number(prevInfo.amount) || 0;
+
+  const safePaymentStatus =
+    paymentStatus ?? prevInfo.paymentStatus ?? 'Pending';
+
+  const safePaymentDate =
+    paymentDate || prevInfo.paymentDate || approvalDate;
+
+  const safePaymentReference =
+    paymentReference || prevInfo.paymentReference || '';
 
   const info = {
     ...prevInfo,
     status: 'Active',
-    plan,
-    durationDays: Number(durationDays),
-    amount: Number(amount),
-    paymentStatus,
-    paymentDate: paymentDate || approvalDate,
-    paymentReference: paymentReference || '',
+    plan: plan || prevInfo.plan || '',
+    durationDays: safeDurationDays,
+    amount: safeAmount,
+    paymentStatus: safePaymentStatus,
+    paymentDate: safePaymentDate,
+    paymentReference: safePaymentReference,
     approvalDate,
     startDate: approvalDate,
     expiryDate,
-    approvedBy: adminEmail,
+    approvedBy: adminEmail || '',
     blocked: prevInfo.blocked || { blocked: false },
   };
   delete info.rejection;
@@ -210,12 +227,12 @@ export async function approveFarm(id, { plan, durationDays, amount, paymentStatu
   batch.set(doc(subscriptionPaymentsCol), {
     farmId: id,
     farmName: snap.data().farmName || id,
-    amount: Number(amount),
-    plan,
-    durationDays: Number(durationDays),
-    date: paymentDate || approvalDate,
-    status: paymentStatus,
-    reference: paymentReference || '',
+    amount: safeAmount,
+    plan: plan || prevInfo.plan || '',
+    durationDays: safeDurationDays,
+    date: safePaymentDate,
+    status: safePaymentStatus,
+    reference: safePaymentReference,
     type: 'new',
     createdAt: approvalDate,
   });
