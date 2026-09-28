@@ -107,7 +107,8 @@ function openViewModal(f) {
   const s = stats[f.id] || { partners: 0, palaiGoats: 0, tradingGoats: 0, totalGoats: 0 };
   $('viewModalTitle').textContent = f.farmName; $('viewAvatar').textContent = initials(f.farmName);
   $('viewStatus').innerHTML = '<span class="farm-status ' + statusClass(f.status) + '"><i></i>' + esc(f.status) + '</span>';
-  const rows = [['Farm ID',f.id],['Owner',f.ownerName],['Mobile',f.mobileNumber],['Email',f.email || '—'],['Partners',s.partners],['Palai goats',s.palaiGoats],['Trading goats',s.tradingGoats],['Total goats',s.totalGoats],['Plan',f.subscription?.plan || 'No subscription'],['Subscription start',fmtDate(f.startDate)],['Subscription expiry',fmtDate(f.expiryDate)],['Days left',f.daysLeft != null ? f.daysLeft : '—'],['Address',f.address || '—']];
+  const countValue = (value) => s.error ? 'Unavailable' : value;
+  const rows = [['Farm ID',f.id],['Owner',f.ownerName],['Mobile',f.mobileNumber],['Email',f.email || '—'],['Partners',countValue(s.partners)],['Palai goats',countValue(s.palaiGoats)],['Trading goats',countValue(s.tradingGoats)],['Total goats',countValue(s.totalGoats)],['Plan',f.subscription?.plan || 'No subscription'],['Subscription start',fmtDate(f.startDate)],['Subscription expiry',fmtDate(f.expiryDate)],['Days left',f.daysLeft != null ? f.daysLeft : '—'],['Address',f.address || '—']];
   $('viewBody').innerHTML = rows.map(([label,value]) => '<div class="detail-item"><span>' + esc(label) + '</span><strong>' + esc(String(value)) + '</strong></div>').join('');
   $('viewModal').classList.remove('hidden');
 }
