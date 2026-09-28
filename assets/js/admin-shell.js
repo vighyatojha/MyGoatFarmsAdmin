@@ -41,17 +41,24 @@ function sidebarHtml(active) {
 }
 
 function topbarHtml(title, subtitle, email) {
+  const links = NAV.map((item) =>
+    `<a class="admin-nav-link" data-nav-key="${item.key}" href="${item.href}">${icon(item.key)}<span>${item.label}</span></a>`
+  ).join('');
+
   return `
-    <div>
-      <h1>${title}</h1>
-      ${subtitle ? `<p>${subtitle}</p>` : ''}
-    </div>
-    <div class="admin-profile">
-      <div class="admin-avatar">${(email || 'A')[0].toUpperCase()}</div>
-      <div class="admin-profile-info"><div>${email || 'Admin'}</div><span>Administrator</span></div>
+    <a class="admin-brand" href="../admin/dashboard.html">
+      <span class="logo-ring"><img src="../assets/img/logo.png" alt="" width="36" height="36"></span>
+      <span class="brand-name">My Goat Farms</span>
+    </a>
+    <nav class="admin-nav" aria-label="Admin navigation">${links}</nav>
+    <div class="admin-top-actions">
+      <div class="admin-profile">
+        <div class="admin-avatar">${(email || 'A')[0].toUpperCase()}</div>
+        <div class="admin-profile-info"><div>${email || 'Admin'}</div><span>Administrator</span></div>
+      </div>
+      <button id="shellLogout" class="admin-logout" type="button">Logout</button>
     </div>`;
 }
-
 /**
  * Mounts the shared sidebar (#sidebarRoot) and topbar (#topbarRoot) right
  * away — the nav itself doesn't need to know who's signed in, so it no
@@ -66,24 +73,26 @@ function topbarHtml(title, subtitle, email) {
  * still `await initAdminShell(...)`.
  */
 export async function initAdminShell({ active, title, subtitle }) {
-  const sidebarRoot = document.getElementById('sidebarRoot');
   const topbarRoot = document.getElementById('topbarRoot');
 
-  if (sidebarRoot) sidebarRoot.innerHTML = sidebarHtml(active);
   if (topbarRoot) topbarRoot.innerHTML = topbarHtml(title, subtitle, null);
   document.getElementById('shellLogout')?.addEventListener('click', logout);
+  document.querySelectorAll('.admin-nav-link').forEach((link) => {
+    link.classList.toggle('active', link.dataset.navKey === active);
+  });
 
   let user;
   try {
     user = await requireAdmin();
   } catch (err) {
-    // Timed out rather than resolving/redirecting — the shell is already
-    // visible, so surface it instead of leaving the page silently stuck.
     toast(err.message, true);
     throw err;
   }
 
   if (topbarRoot) topbarRoot.innerHTML = topbarHtml(title, subtitle, user.email);
+  document.querySelectorAll('.admin-nav-link').forEach((link) => {
+    link.classList.toggle('active', link.dataset.navKey === active);
+  });
   document.getElementById('shellLogout')?.addEventListener('click', logout);
 
   return user;
