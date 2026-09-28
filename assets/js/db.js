@@ -1,4 +1,5 @@
-import { db } from './firebase-config.js';
+import { db, functions } from './firebase-config.js';
+import { httpsCallable } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-functions.js';
 import {
   collection, collectionGroup, doc, getDoc, getDocs, addDoc, setDoc, writeBatch, onSnapshot, query, where,
 } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js';
@@ -326,6 +327,16 @@ export async function renewFarm(id, { plan, durationDays, amount, paymentStatus,
   await batch.commit();
 
   return getFarm(id);
+}
+
+export async function deleteFarm(id) {
+  const farmId = String(id || '').trim();
+  if (!farmId) throw new Error('Farm ID is required.');
+
+  const callable = httpsCallable(functions, 'deleteFarm');
+  await callable({ farmId });
+
+  return true;
 }
 
 export async function rejectFarm(id, reason, adminEmail) {
