@@ -1,4 +1,4 @@
-import { db, functions } from './firebase-config.js';
+import { db, functions } from './firebase-config.js?v=20260928-2';
 import { httpsCallable } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-functions.js';
 import {
   collection, collectionGroup, doc, getDoc, getDocs, addDoc, setDoc, writeBatch, onSnapshot, query, where,
