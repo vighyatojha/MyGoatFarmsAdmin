@@ -88,7 +88,7 @@ export async function getFarm(id) {
 // Approve a pending farm: records the payment, starts the subscription
 // countdown from the approval date (not registration/payment date), and
 // activates the farm. Writes ONLY the subscriptionInfo field (per rules).
-export async function approveFarm(id, { plan, durationDays, amount, paymentStatus, paymentDate, paymentReference }, adminEmail) {
+export async function approveFarm(id, { plan, durationDays }, adminEmail) {
   const ref = doc(db, 'farms', id);
   const snap = await getDoc(ref);
   if (!snap.exists()) return null;
@@ -103,10 +103,6 @@ export async function approveFarm(id, { plan, durationDays, amount, paymentStatu
     status: 'Active',
     plan,
     durationDays: Number(durationDays),
-    amount: Number(amount),
-    paymentStatus,
-    paymentDate: paymentDate || approvalDate,
-    paymentReference: paymentReference || '',
     approvalDate,
     startDate: approvalDate,
     expiryDate,
@@ -115,25 +111,11 @@ export async function approveFarm(id, { plan, durationDays, amount, paymentStatu
   };
   delete info.rejection;
 
-  const batch = writeBatch(db);
-  batch.update(ref, { subscriptionInfo: info });
-  batch.set(doc(subscriptionPaymentsCol), {
-    farmId: id,
-    farmName: snap.data().farmName || id,
-    amount: Number(amount),
-    plan,
-    durationDays: Number(durationDays),
-    date: paymentDate || approvalDate,
-    status: paymentStatus,
-    reference: paymentReference || '',
-    type: 'new',
-    createdAt: approvalDate,
-  });
-  await batch.commit();
+  await setDoc(ref, { subscriptionInfo: info }, { merge: true });
   return getFarm(id);
 }
 
-export async function renewFarm(id, { plan, durationDays, amount, paymentStatus, paymentDate, paymentReference }) {
+export async function renewFarm(id, { plan, durationDays }) {
   const ref = doc(db, 'farms', id);
   const snap = await getDoc(ref);
   if (!snap.exists()) return null;
@@ -150,28 +132,10 @@ export async function renewFarm(id, { plan, durationDays, amount, paymentStatus,
     status: 'Active',
     plan,
     durationDays: Number(durationDays),
-    amount: Number(amount),
-    paymentStatus,
-    paymentDate: paymentDate || ts,
-    paymentReference: paymentReference || '',
     expiryDate,
   };
 
-  const batch = writeBatch(db);
-  batch.update(ref, { subscriptionInfo: info });
-  batch.set(doc(subscriptionPaymentsCol), {
-    farmId: id,
-    farmName: d.farmName || id,
-    amount: Number(amount),
-    plan,
-    durationDays: Number(durationDays),
-    date: paymentDate || ts,
-    status: paymentStatus,
-    reference: paymentReference || '',
-    type: 'renewal',
-    createdAt: ts,
-  });
-  await batch.commit();
+  await setDoc(ref, { subscriptionInfo: info }, { merge: true });
   return getFarm(id);
 }
 
