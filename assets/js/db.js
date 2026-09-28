@@ -1,6 +1,6 @@
 import { db } from './firebase-config.js';
 import {
-  collection, doc, getDoc, getDocs, addDoc, setDoc, writeBatch, onSnapshot,
+  collection, collectionGroup, query, where, doc, getDoc, getDocs, addDoc, setDoc, writeBatch, onSnapshot,
 } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -387,6 +387,15 @@ export async function getPlans() {
   const snap = await getDoc(plansRef);
   if (!snap.exists() || !Array.isArray(snap.data().plans) || !snap.data().plans.length) return DEFAULT_PLANS;
   return snap.data().plans;
+}
+
+export async function getFarmOperationalStats(farmId) {
+  const [partnersSnap, palaiGoatsSnap, tradingGoatsSnap] = await Promise.all([
+    getDocs(collection(db, 'farms', farmId, 'partners')),
+    getDocs(query(collectionGroup(db, 'goats'), where('farmId', '==', farmId))),
+    getDocs(collection(db, 'farms', farmId, 'tradingGoats')),
+  ]);
+  return { partners: partnersSnap.size, palaiGoats: palaiGoatsSnap.size, tradingGoats: tradingGoatsSnap.size };
 }
 
 export async function savePlans(plans) {
