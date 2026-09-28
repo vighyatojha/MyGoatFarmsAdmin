@@ -217,7 +217,7 @@ service cloud.firestore {
       match /notifications/{notificationId} {
 
         allow read:
-          if isOwnerOrPartner(farmId);
+          if isOwnerOrPartner(farmId) || isAdmin();
 
         allow create, update:
           if isOwnerOrPartner(farmId);
@@ -502,7 +502,7 @@ service cloud.firestore {
       match /tradingGoats/{goatId} {
 
         allow read, write:
-          if isOwnerOrPartner(farmId);
+          if isOwnerOrPartner(farmId) || isAdmin();
 
 
         // ----------------------------------------------------------
@@ -578,7 +578,8 @@ service cloud.firestore {
     match /{path=**}/goats/{goatId} {
 
       allow read:
-        if isOwnerOrPartner(resource.data.farmId)
+        if isAdmin()
+        || isOwnerOrPartner(resource.data.farmId)
         || isOwnerOrPartner(path[1]);
     }
 
