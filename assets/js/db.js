@@ -6,6 +6,18 @@ import {
 const DAY_MS = 24 * 60 * 60 * 1000;
 const nowIso = () => new Date().toISOString();
 
+function removeUndefined(value) {
+  if (Array.isArray(value)) return value.map(removeUndefined);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([, v]) => v !== undefined)
+        .map(([k, v]) => [k, removeUndefined(v)])
+    );
+  }
+  return value;
+}
+
 /* ==============================================================
    FARMS
    Farm documents are created by the Flutter app itself (tied to
@@ -205,7 +217,7 @@ export async function approveFarm(id, { plan, durationDays, amount, paymentStatu
   const safePaymentReference =
     paymentReference || prevInfo.paymentReference || '';
 
-  const info = {
+  const info = removeUndefined({
     ...prevInfo,
     status: 'Active',
     plan: plan || prevInfo.plan || '',
@@ -219,12 +231,10 @@ export async function approveFarm(id, { plan, durationDays, amount, paymentStatu
     expiryDate,
     approvedBy: adminEmail || '',
     blocked: prevInfo.blocked || { blocked: false },
-  };
+  });
   delete info.rejection;
 
-  const batch = writeBatch(db);
-  batch.update(ref, { subscriptionInfo: info });
-  batch.set(doc(subscriptionPaymentsCol), {
+  const paymentRecord = removeUndefined({
     farmId: id,
     farmName: snap.data().farmName || id,
     amount: safeAmount,
@@ -236,6 +246,10 @@ export async function approveFarm(id, { plan, durationDays, amount, paymentStatu
     type: 'new',
     createdAt: approvalDate,
   });
+
+  const batch = writeBatch(db);
+  batch.update(ref, { subscriptionInfo: info });
+  batch.set(doc(subscriptionPaymentsCol), paymentRecord);
   await batch.commit();
   return getFarm(id);
 }
@@ -274,7 +288,7 @@ export async function renewFarm(id, { plan, durationDays, amount, paymentStatus,
   const safePaymentReference =
     paymentReference || '';
 
-  const info = {
+  const info = removeUndefined({
     ...prevInfo,
     status: 'Active',
     plan: safePlan,
@@ -286,15 +300,9 @@ export async function renewFarm(id, { plan, durationDays, amount, paymentStatus,
     renewalDate: ts,
     renewedBy: adminEmail || prevInfo.renewedBy || '',
     expiryDate,
-  };
-
-  const batch = writeBatch(db);
-
-  batch.update(ref, {
-    subscriptionInfo: info,
   });
 
-  batch.set(doc(subscriptionPaymentsCol), {
+  const paymentRecord = removeUndefined({
     farmId: id,
     farmName: d.farmName || id,
     amount: safeAmount,
@@ -306,6 +314,14 @@ export async function renewFarm(id, { plan, durationDays, amount, paymentStatus,
     type: 'renewal',
     createdAt: ts,
   });
+
+  const batch = writeBatch(db);
+
+  batch.update(ref, {
+    subscriptionInfo: info,
+  });
+
+  batch.set(doc(subscriptionPaymentsCol), paymentRecord);
 
   await batch.commit();
 
