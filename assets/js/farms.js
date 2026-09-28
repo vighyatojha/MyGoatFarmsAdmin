@@ -1,6 +1,6 @@
 import { initAdminShell, toast, esc, fmtDate } from './admin-shell.js';
 import {
-  watchFarms, approveFarm, renewFarm, rejectFarm, blockFarm, unblockFarm, bulkBlockFarms, getPlans,
+  watchFarms, approveFarm, renewFarm, rejectFarm, blockFarm, unblockFarm, bulkBlockFarms, getPlans, getFarmOperationalStats,
 } from './db.js';
 
 // Not awaited here on purpose: the sidebar/topbar already paint immediately
@@ -14,6 +14,7 @@ const adminUserPromise = initAdminShell({ active: 'farms', title: 'Farm Manageme
 const $ = (id) => document.getElementById(id);
 let farms = [];
 let plans = [];
+let farmStats = {};
 let activeFilter = 'All';
 const selected = new Set();
 
@@ -55,9 +56,7 @@ function render() {
   $('farmTable').innerHTML =
     rows
       .map((f) => {
-        const sub = f.subscription
-          ? `<div class="cell-strong">${esc(f.subscription.plan)}</div><div class="cell-sub">${f.daysLeft != null ? `${f.daysLeft} days left` : '—'}</div>`
-          : '<div class="cell-sub">No subscription yet</div>';
+        const stats = farmStats[f.id] || { partners: '—', palaiGoats: '—', tradingGoats: '—' };
         const initials = (f.farmName || 'F').split(' ').map((x) => x[0]).slice(0, 2).join('').toUpperCase();
         return `
       <tr>
@@ -67,7 +66,7 @@ function render() {
           <div><div class="user-name">${esc(f.farmName)}</div><div class="cell-mono">ID: ${esc(f.id)}</div></div>
         </div></td>
         <td><div class="cell-strong">${esc(f.ownerName)}</div><div class="cell-sub">${esc(f.mobileNumber)}</div></td>
-        <td>${sub}</td>
+        <td>${stats.partners}</td><td>${stats.palaiGoats}</td><td>${stats.tradingGoats}</td>
         <td><span class="badge ${f.status}">${esc(f.status)}</span></td>
         <td>${rowActions(f)}</td>
       </tr>`;
@@ -93,7 +92,17 @@ function renderSelectBar() {
 // automatically (including this admin's own action, echoed straight back
 // through the same listener) — nothing below needs to call load() again.
 watchFarms(
-  (list) => { farms = list; render(); },
+  async (list) => {
+    farms = list;
+    render();
+    try {
+      const results = await Promise.all(farms.map(async (f) => [f.id, await getFarmOperationalStats(f.id)]));
+      farmStats = Object.fromEntries(results);
+      render();
+    } catch (err) {
+      toast(err.message, true);
+    }
+  },
   (err) => toast(err.message, true)
 );
 
@@ -117,10 +126,6 @@ function openSubModal(f, mode) {
   const firstPlan = plans[0];
   $('subPlan').value = f.subscription?.plan || firstPlan?.name || '';
   $('subDuration').value = f.subscription?.durationDays || firstPlan?.days || 365;
-  $('subAmount').value = f.subscription?.amount || firstPlan?.amount || '';
-  $('subPaymentStatus').value = f.payment?.status || 'Paid';
-  $('subPaymentDate').value = new Date().toISOString().slice(0, 10);
-  $('subPaymentRef').value = '';
   $('subModal').classList.remove('hidden');
 }
 const closeSubModal = () => $('subModal').classList.add('hidden');
@@ -130,7 +135,6 @@ $('cancelSubModal').addEventListener('click', closeSubModal);
 $('subPlan').addEventListener('change', (e) => {
   const opt = e.target.selectedOptions[0];
   if (opt?.dataset.days) $('subDuration').value = opt.dataset.days;
-  if (opt?.dataset.amount) $('subAmount').value = opt.dataset.amount;
 });
 
 $('subForm').addEventListener('submit', async (e) => {
@@ -140,10 +144,6 @@ $('subForm').addEventListener('submit', async (e) => {
   const body = {
     plan: $('subPlan').value || 'Custom Plan',
     durationDays: Number($('subDuration').value) || 1,
-    amount: Number($('subAmount').value) || 0,
-    paymentStatus: $('subPaymentStatus').value,
-    paymentDate: $('subPaymentDate').value,
-    paymentReference: $('subPaymentRef').value.trim(),
   };
   const btn = $('saveSub');
   btn.disabled = true;
@@ -201,13 +201,10 @@ function openViewModal(f) {
     ['Address', f.address || '—'],
     ['Status', f.status],
     ['Plan', f.subscription?.plan || '—'],
-    ['Subscription Amount', f.subscription ? `₹${f.subscription.amount}` : '—'],
     ['Approval Date', fmtDate(f.approvalDate)],
     ['Subscription Start', fmtDate(f.startDate)],
     ['Subscription Expiry', fmtDate(f.expiryDate)],
     ['Days Left', f.daysLeft != null ? f.daysLeft : '—'],
-    ['Payment Status', f.payment?.status || '—'],
-    ['Payment Reference', f.payment?.reference || '—'],
     ['Blocked', f.blocked?.blocked ? `Yes — ${f.blocked.reason || 'no reason given'}` : 'No'],
     ['Rejection Reason', f.rejection?.reason || '—'],
   ];
