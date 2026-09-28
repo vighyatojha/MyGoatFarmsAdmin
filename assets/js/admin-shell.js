@@ -15,8 +15,6 @@ const NAV = [
   { key: 'dashboard', href: '../admin/dashboard.html', label: 'Dashboard' },
   { key: 'farms', href: '../admin/farms.html', label: 'Farms' },
   { key: 'subscriptions', href: '../admin/subscriptions.html', label: 'Subscriptions' },
-  { key: 'payments', href: '../admin/payments.html', label: 'Payments' },
-  { key: 'earnings', href: '../admin/earnings.html', label: 'Earnings' },
   { key: 'enquiries', href: '../admin/enquiries.html', label: 'Enquiries' },
   { key: 'reports', href: '../admin/reports.html', label: 'Reports' },
   { key: 'settings', href: '../admin/settings.html', label: 'Settings' },
