@@ -1,5 +1,5 @@
 import { initAdminShell, toast, esc } from './admin-shell.js';
-import { getPlans, savePlans } from './db.js';
+import { getPlans, savePlans, getAdminContact, saveAdminContact } from './db.js';
 
 // Not awaited here on purpose: the shell paints immediately inside
 // initAdminShell(), and load() below fetches the subscription plans right
@@ -8,6 +8,41 @@ import { getPlans, savePlans } from './db.js';
 initAdminShell({ active: 'settings', title: 'Settings', subtitle: 'Manage subscription plans and your admin account.' })
   .then((user) => { document.getElementById('accountEmail').textContent = user.email; })
   .catch(() => {});
+
+async function loadAdminContact() {
+  try {
+    const contact = await getAdminContact();
+    $('adminContactName').value = contact.name || '';
+    $('adminContactPhone').value = contact.phone || '';
+    $('adminContactEmail').value = contact.email || '';
+  } catch (err) {
+    toast(err.message, true);
+  }
+}
+
+$('saveAdminContact').addEventListener('click', async () => {
+  const btn = $('saveAdminContact');
+  const name = $('adminContactName').value.trim();
+  const email = $('adminContactEmail').value.trim();
+  const phone = $('adminContactPhone').value.trim();
+
+  if (!email) {
+    toast('Admin support email is required.', true);
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  try {
+    await saveAdminContact({ name, email, phone });
+    toast('Support contact saved.');
+  } catch (err) {
+    toast(err.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save Support Contact';
+  }
+});
 
 const $ = (id) => document.getElementById(id);
 let plans = [];
@@ -93,3 +128,4 @@ $('savePlans').addEventListener('click', async () => {
 });
 
 load();
+loadAdminContact();
