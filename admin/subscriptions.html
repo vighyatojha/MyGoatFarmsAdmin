@@ -71,10 +71,7 @@
           <label class="field-label" for="subPaymentStatus">Payment Status</label>
           <select id="subPaymentStatus" class="select"><option>Paid</option><option>Pending</option><option>Failed</option><option>Refunded</option></select>
         </div>
-        <div class="form-row">
-          <div class="field"><label class="field-label" for="subPaymentDate">Payment Date</label><input id="subPaymentDate" class="input" type="date"></div>
-          <div class="field"><label class="field-label" for="subPaymentRef">Payment Reference</label><input id="subPaymentRef" class="input" maxlength="120"></div>
-        </div>
+        <div class="field"><label class="field-label" for="subDuration">Duration (days)</label><input id="subDuration" class="input" type="number" min="1" required></div>
         <div class="modal-actions">
           <button type="button" class="btn btn-outline" id="cancelSubModal">Cancel</button>
           <button type="submit" class="btn btn-primary" id="saveSub">Confirm</button>
