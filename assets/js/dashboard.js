@@ -16,6 +16,7 @@ function render() {
   document.getElementById('statPending').textContent = farms.filter((f) => f.status === 'Pending').length;
   document.getElementById('statActive').textContent = farms.filter((f) => f.status === 'Active').length;
   document.getElementById('statBlocked').textContent = farms.filter((f) => f.status === 'Blocked').length;
+  document.getElementById('statTotalFarms').textContent = farms.length;
 
   const enqBox = document.getElementById('enquiryActivity');
   enqBox.innerHTML =
