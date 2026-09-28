@@ -1,5 +1,7 @@
 import { initAdminShell, toast, esc, fmtDate } from './admin-shell.js';
-import { watchFarms, getAllFarmOperationalStats, approveFarm, renewFarm, rejectFarm, blockFarm, unblockFarm, getPlans } from './db.js';
+// Cache-bust the Firestore service so admin browsers do not keep an older
+// approve/renew implementation after a deployment.
+import { watchFarms, getAllFarmOperationalStats, approveFarm, renewFarm, rejectFarm, blockFarm, unblockFarm, getPlans } from './db.js?v=20260928-3';
 
 const adminUserPromise = initAdminShell({ active: 'farms', title: 'Farms', subtitle: 'Farm operations and subscription management.' });
 const $ = (id) => document.getElementById(id);
@@ -92,7 +94,14 @@ $('closeSubModal').addEventListener('click', closeSubModal); $('cancelSubModal')
 $('subPlan').addEventListener('change', (e) => { const opt = e.target.selectedOptions[0]; if (opt?.dataset.days) $('subDuration').value = opt.dataset.days; });
 $('subForm').addEventListener('submit', async (e) => {
   e.preventDefault(); const id = $('subFarmId').value; const mode = $('subFarmId').dataset.mode;
-  const body = { plan: $('subPlan').value || 'Custom Plan', durationDays: Number($('subDuration').value) || 1 };
+  const body = {
+    plan: $('subPlan').value || 'Custom Plan',
+    durationDays: Number($('subDuration').value) || 1,
+    amount: Number($('subAmount').value) || 0,
+    paymentStatus: $('subPaymentStatus').value || 'Pending',
+    paymentDate: $('subPaymentDate').value || '',
+    paymentReference: $('subPaymentRef').value.trim(),
+  };
   const btn = $('saveSub'); btn.disabled = true; btn.textContent = 'Saving…';
   try { if (mode === 'approve') await approveFarm(id, body, (await adminUserPromise).email); else await renewFarm(id, body); closeSubModal(); toast(mode === 'approve' ? 'Farm approved and activated.' : 'Subscription renewed.'); }
   catch (err) { toast(err.message, true); } finally { btn.disabled = false; btn.textContent = 'Confirm'; }
