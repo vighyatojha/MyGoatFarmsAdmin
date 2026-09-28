@@ -4,83 +4,114 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
-  <title>Dashboard · My Goat Farms Admin</title>
+  <title>Admin Dashboard · My Goat Farms</title>
   <link rel="icon" type="image/png" href="../assets/img/favicon.png">
   <link rel="stylesheet" href="../assets/css/styles.css">
   <link rel="stylesheet" href="../assets/css/admin.css">
 </head>
 <body class="admin-page">
   <aside class="sidebar" id="sidebarRoot"></aside>
-
   <main class="admin-main">
     <header class="admin-top" id="topbarRoot"></header>
 
-    <section class="summary-grid" aria-label="Summary">
-      <div class="summary-card">
-        <div class="summary-card-header"><span>Pending Approval</span><div class="icon-chip orange"><svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div>
-        <strong id="statPending">0</strong><small>Awaiting review</small>
-      </div>
-      <div class="summary-card">
-        <div class="summary-card-header"><span>Active Farms</span><div class="icon-chip"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div></div>
-        <strong id="statActive">0</strong><small>Subscription active</small>
-      </div>
-      <div class="summary-card">
-        <div class="summary-card-header"><span>Blocked Farms</span><div class="icon-chip"><svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></div></div>
-        <strong id="statBlocked">0</strong><small>Access suspended</small>
-      </div>
-      <div class="summary-card">
-        <div class="summary-card-header"><span>Total Farms</span><div class="icon-chip teal"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div></div>
-        <strong id="statTotalFarms">0</strong><small>Registered farms</small>
-      </div>
+    <section class="summary-grid" aria-label="Farm summary">
+      <div class="summary-card"><div class="summary-card-header"><span>Total Farms</span><div class="icon-chip teal">⌂</div></div><strong id="statTotalFarms">0</strong><small>Registered farms</small></div>
+      <div class="summary-card"><div class="summary-card-header"><span>Pending Approval</span><div class="icon-chip orange">◷</div></div><strong id="statPending">0</strong><small>Needs review</small></div>
+      <div class="summary-card"><div class="summary-card-header"><span>Active Farms</span><div class="icon-chip">✓</div></div><strong id="statActive">0</strong><small>Currently operational</small></div>
+      <div class="summary-card"><div class="summary-card-header"><span>Blocked Farms</span><div class="icon-chip purple">⊘</div></div><strong id="statBlocked">0</strong><small>Access suspended</small></div>
     </section>
 
-    <section class="panel dashboard-farms-panel" style="margin-bottom:24px;">
-      <div class="panel-head">
-        <div><h2>Farm Overview</h2><p>Farm ID, partners and current Palai / Trading goat counts.</p></div>
-        <a class="btn btn-outline btn-sm" href="./farms.html">Full management</a>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Farm</th><th>Farm ID</th><th>Partners</th><th>Palai Goats</th><th>Trading Goats</th><th>Status</th><th></th></tr></thead>
-          <tbody id="farmOverviewTable"><tr><td colspan="7" class="empty-row">Loading…</td></tr></tbody>
-        </table>
-      </div>
-    </section>
+    <div class="dashboard-tabs" role="tablist" aria-label="Admin sections">
+      <button class="dashboard-tab active" data-section="farms" type="button">Farms</button>
+      <button class="dashboard-tab" data-section="subscriptions" type="button">Subscriptions</button>
+      <button class="dashboard-tab" data-section="enquiries" type="button">Enquiries</button>
+      <button class="dashboard-tab" data-section="reports" type="button">Reports</button>
+    </div>
 
-    <section class="dashboard-two-col">
+    <section class="dashboard-section active" id="section-farms">
       <section class="panel">
         <div class="panel-head">
-          <div><h2>Subscriptions</h2><p>Access status only — no payment information.</p></div>
-          <a class="btn btn-outline btn-sm" href="./subscriptions.html">View all</a>
+          <div><h2>Farm Management</h2><p>Farm ID, partners, Palai goats and Trading goats — all operational information in one place.</p></div>
         </div>
-        <div class="table-wrap compact-table">
+        <div class="toolbar toolbar-stacked">
+          <input id="farmSearch" class="input" type="search" placeholder="Search farm name, owner, mobile or Farm ID…" aria-label="Search farms">
+          <div class="filter-pills" id="statusPills"></div>
+        </div>
+        <div class="table-wrap">
           <table>
-            <thead><tr><th>Farm</th><th>Plan</th><th>Days Left</th><th>Status</th></tr></thead>
-            <tbody id="subscriptionOverview"><tr><td colspan="4" class="empty-row">Loading…</td></tr></tbody>
+            <thead><tr><th>Farm</th><th>Farm ID</th><th>Owner / Contact</th><th>Partners</th><th>Palai Goats</th><th>Trading Goats</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="farmTable"><tr><td colspan="8" class="empty-row">Loading farms…</td></tr></tbody>
           </table>
         </div>
       </section>
+    </section>
 
+    <section class="dashboard-section" id="section-subscriptions">
       <section class="panel">
-        <div class="panel-head">
-          <div><h2>New Enquiries</h2><p>Latest messages from the public Contact form.</p></div>
-          <a class="btn btn-outline btn-sm" href="./enquiries.html">View all</a>
+        <div class="panel-head"><div><h2>Subscriptions & Access</h2><p>Access duration and status only. No payment or revenue information.</p></div></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Farm</th><th>Farm ID</th><th>Plan</th><th>Start</th><th>Expiry</th><th>Days Left</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody id="subscriptionTable"><tr><td colspan="8" class="empty-row">Loading subscriptions…</td></tr></tbody>
+          </table>
         </div>
-        <div class="activity-list" id="enquiryActivity"><p class="empty-row">Loading…</p></div>
       </section>
     </section>
 
-    <div id="farmDetailModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="farmDetailTitle">
+    <section class="dashboard-section" id="section-enquiries">
+      <section class="panel">
+        <div class="panel-head"><div><h2>New Enquiries</h2><p>Latest messages submitted through the public Contact form.</p></div></div>
+        <div class="activity-list" id="enquiryActivity"><p class="empty-row">Loading enquiries…</p></div>
+      </section>
+    </section>
+
+    <section class="dashboard-section" id="section-reports">
+      <section class="panel">
+        <div class="panel-head"><div><h2>Operational Reports</h2><p>Download farm, subscription and enquiry data. Financial reports are not included.</p></div></div>
+        <div class="report-grid">
+          <button class="report-tile" type="button" data-report="farm"><h3>Farm Report</h3><p>Farm ID, owner, partners, Palai goats, Trading goats and status.</p></button>
+          <button class="report-tile" type="button" data-report="subscription"><h3>Subscription Report</h3><p>Plan, start date, expiry, days left and access status.</p></button>
+          <button class="report-tile" type="button" data-report="enquiry"><h3>Enquiry Report</h3><p>Contact form enquiries and their current status.</p></button>
+        </div>
+      </section>
+    </section>
+
+    <div id="subModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="subModalTitle">
       <div class="modal-card">
-        <button class="modal-close" id="closeFarmDetail" type="button" aria-label="Close">&times;</button>
-        <h2 id="farmDetailTitle">Farm Details</h2>
-        <div class="detail-grid" id="farmDetailBody"></div>
+        <button class="modal-close" id="closeSubModal" type="button" aria-label="Close">&times;</button>
+        <h2 id="subModalTitle">Approve Farm</h2>
+        <form id="subForm" novalidate>
+          <input type="hidden" id="subFarmId">
+          <p class="form-note" id="subNote"></p>
+          <div class="field"><label class="field-label" for="subPlan">Subscription Plan</label><select id="subPlan" class="select" required></select></div>
+          <div class="field"><label class="field-label" for="subDuration">Duration (days)</label><input id="subDuration" class="input" type="number" min="1" required></div>
+          <div class="modal-actions"><button type="button" class="btn btn-outline" id="cancelSubModal">Cancel</button><button type="submit" class="btn btn-primary" id="saveSub">Confirm</button></div>
+        </form>
       </div>
     </div>
+
+    <div id="reasonModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="reasonModalTitle">
+      <div class="modal-card">
+        <button class="modal-close" id="closeReasonModal" type="button" aria-label="Close">&times;</button>
+        <h2 id="reasonModalTitle">Block Farm</h2>
+        <form id="reasonForm" novalidate>
+          <input type="hidden" id="reasonFarmId"><input type="hidden" id="reasonAction">
+          <div class="field"><label class="field-label" for="reasonText">Reason</label><textarea id="reasonText" class="input" maxlength="300" placeholder="Optional reason"></textarea></div>
+          <div class="modal-actions"><button type="button" class="btn btn-outline" id="cancelReasonModal">Cancel</button><button type="submit" class="btn btn-danger-solid" id="confirmReason">Confirm</button></div>
+        </form>
+      </div>
+    </div>
+
+    <div id="viewModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="viewModalTitle">
+      <div class="modal-card">
+        <button class="modal-close" id="closeViewModal" type="button" aria-label="Close">&times;</button>
+        <h2 id="viewModalTitle">Farm Details</h2>
+        <div class="detail-grid" id="viewBody"></div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
   </main>
-
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-
   <script type="module" src="../assets/js/dashboard.js"></script>
 </body>
 </html>
