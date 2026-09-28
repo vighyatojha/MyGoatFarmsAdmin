@@ -487,3 +487,10 @@ textarea.input { resize: vertical; min-height: 90px; padding-top: 10px; }
 
 .table-wrap th { white-space: nowrap; }
 @media (max-width: 640px) { .table-wrap th { white-space: normal; } }
+
+/* Farms toolbar (desktop): the mobile search box is hidden here, so only two
+   columns are left — filters take the space, Refresh stays button-sized. */
+@media (min-width: 1101px) {
+  .farms-toolbar { grid-template-columns: 1fr auto; }
+  .refresh-counts { justify-self: end; }
+}
