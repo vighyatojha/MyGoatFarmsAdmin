@@ -547,6 +547,25 @@ const DEFAULT_PLANS = [
   { id: 'plan-6m', name: '6 Months', amount: 7000, days: 180 },
 ];
 
+export async function getAdminContact() {
+  const snap = await getDoc(doc(db, 'config', 'adminContact'));
+  return snap.exists()
+    ? snap.data()
+    : { name: 'My Goat Farms Support', email: 'mygoatfarm20@gmail.com', phone: '' };
+}
+
+export async function saveAdminContact({ name, email, phone }) {
+  const safe = removeUndefined({
+    name: String(name || '').trim(),
+    email: String(email || '').trim(),
+    phone: String(phone || '').trim(),
+    updatedAt: nowIso(),
+  });
+
+  await setDoc(doc(db, 'config', 'adminContact'), safe);
+  return safe;
+}
+
 export async function getPlans() {
   const snap = await getDoc(plansRef);
   if (!snap.exists() || !Array.isArray(snap.data().plans) || !snap.data().plans.length) return DEFAULT_PLANS;
