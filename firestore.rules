@@ -273,7 +273,12 @@ service cloud.firestore {
         // Customer
         // ------------------------------------------------------------
 
-        allow read, write:
+        // Admin portal needs to enumerate customers to count active
+        // Customer-Palai goats. This is read-only for admins.
+        allow read:
+          if isOwnerOrPartner(farmId) || isAdmin();
+
+        allow write:
           if isOwnerOrPartner(farmId);
 
 
@@ -287,7 +292,12 @@ service cloud.firestore {
           // Goat document
           // ----------------------------------------------------------
 
-          allow read, write:
+          // Admin portal may read active goat records for aggregate
+          // counts only; all mutations remain owner/partner-only.
+          allow read:
+            if isOwnerOrPartner(farmId) || isAdmin();
+
+          allow write:
             if isOwnerOrPartner(farmId);
 
 
