@@ -45,7 +45,7 @@ function render() {
       <td><span class="badge ${f.status}">${esc(f.status)}</span></td>
       <td>
         ${f.status !== 'Pending' ? `<button class="action-btn" type="button" data-action="renew" data-id="${esc(f.id)}">Extend / Renew</button>` : ''}
-        <a class="action-btn" href="/admin/farms.html">View in Farms</a>
+        <a class="action-btn" href="farms.html">View in Farms</a>
       </td>
     </tr>`
       )
