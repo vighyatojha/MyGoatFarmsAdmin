@@ -1,289 +1,130 @@
 import { initAdminShell, toast, esc, fmtDate } from './admin-shell.js';
-import {
-  watchFarms, approveFarm, renewFarm, rejectFarm, blockFarm, unblockFarm, bulkBlockFarms, getPlans,
-} from './db.js';
+import { watchFarms, getAllFarmOperationalStats, approveFarm, renewFarm, rejectFarm, blockFarm, unblockFarm, getPlans } from './db.js';
 
-// Not awaited here on purpose: the sidebar/topbar already paint immediately
-// inside initAdminShell(), and the live farms subscription below starts
-// right away too, in parallel with this admin check — rather than waiting
-// for it to finish first. adminUser is only actually needed later, inside
-// the approve/reject/block handlers (at click time, well after this
-// resolves).
-const adminUserPromise = initAdminShell({ active: 'farms', title: 'Farm Management', subtitle: 'Review, approve and manage every farm subscription.' });
-
+const adminUserPromise = initAdminShell({ active: 'farms', title: 'Farms', subtitle: 'Farm operations and subscription management.' });
 const $ = (id) => document.getElementById(id);
 let farms = [];
+let stats = {};
 let plans = [];
 let activeFilter = 'All';
-const selected = new Set();
+let searchTerm = '';
+const FILTERS = ['All', 'Pending', 'Active', 'Expired', 'Blocked', 'Rejected'];
 
-const FILTERS = ['All', 'Pending', 'Active', 'Blocked', 'Rejected', 'Expired'];
+function initials(name) { return (name || 'Farm').split(/\s+/).map((x) => x[0]).slice(0, 2).join('').toUpperCase(); }
+function statusClass(status) { return String(status || '').replace(/\s+/g, ''); }
 
-/* ---------- Rendering ---------- */
-
-function renderPills() {
+function renderFilters() {
   $('statusPills').innerHTML = FILTERS.map((f) => {
     const count = f === 'All' ? farms.length : farms.filter((x) => x.status === f).length;
-    return `<button type="button" class="pill${f === activeFilter ? ' active' : ''}" data-filter="${f}">${f} <span class="count">${count}</span></button>`;
+    return '<button type="button" class="farm-filter' + (f === activeFilter ? ' active' : '') + '" data-filter="' + f + '">' + f + ' <b>' + count + '</b></button>';
   }).join('');
 }
 
-function rowActions(f) {
-  const btns = [`<button class="action-btn" type="button" data-action="view" data-id="${esc(f.id)}">View</button>`];
+function actionButtons(f) {
+  const buttons = ['<button class="farm-action view" type="button" data-action="view" data-id="' + esc(f.id) + '">View</button>'];
   if (f.status === 'Pending') {
-    btns.push(`<button class="action-btn" type="button" data-action="approve" data-id="${esc(f.id)}">Approve</button>`);
-    btns.push(`<button class="action-btn danger" type="button" data-action="reject" data-id="${esc(f.id)}">Reject</button>`);
+    buttons.push('<button class="farm-action renew" type="button" data-action="approve" data-id="' + esc(f.id) + '">✓ Approve</button>');
+    buttons.push('<button class="farm-action reject" type="button" data-action="reject" data-id="' + esc(f.id) + '">Reject</button>');
   } else if (f.status === 'Active' || f.status === 'Expired') {
-    btns.push(`<button class="action-btn" type="button" data-action="renew" data-id="${esc(f.id)}">Renew</button>`);
-    btns.push(`<button class="action-btn danger" type="button" data-action="block" data-id="${esc(f.id)}">Block</button>`);
+    buttons.push('<button class="farm-action renew" type="button" data-action="renew" data-id="' + esc(f.id) + '">Renew</button>');
+    buttons.push('<button class="farm-action reject" type="button" data-action="block" data-id="' + esc(f.id) + '">Block</button>');
   } else if (f.status === 'Blocked') {
-    btns.push(`<button class="action-btn" type="button" data-action="unblock" data-id="${esc(f.id)}">Unblock</button>`);
-  } else if (f.status === 'Rejected') {
-    btns.push(`<button class="action-btn" type="button" data-action="approve" data-id="${esc(f.id)}">Approve</button>`);
+    buttons.push('<button class="farm-action renew" type="button" data-action="unblock" data-id="' + esc(f.id) + '">Unblock</button>');
   }
-  return btns.join('');
+  return buttons.join('');
+}
+
+function farmCard(f) {
+  const s = stats[f.id] || { partners: 0, palaiGoats: 0, tradingGoats: 0, totalGoats: 0 };
+  const plan = f.subscription?.plan || 'NEW REGISTER';
+  const duration = f.subscription?.durationDays ? Math.round(f.subscription.durationDays / 30) + ' mo' : '';
+  const expiry = f.daysLeft != null ? Math.max(f.daysLeft, 0) + ' days left' : 'No subscription yet';
+  const status = f.status || 'Pending';
+  const totalLabel = s.error ? '—' : s.totalGoats;
+  return '<article class="farm-card">' +
+    '<div class="farm-card-head"><div><div class="farm-name-row"><h2>' + esc(f.farmName) + '</h2><span class="farm-status ' + statusClass(status) + '"><i></i>' + esc(status) + '</span></div>' +
+    '<div class="farm-plan"><span>' + esc(f.id) + '</span><b>' + esc(plan) + '</b></div></div></div>' +
+    '<div class="farm-meta"><span>◉ ' + esc(f.ownerName || '—') + ' · ' + esc(f.mobileNumber || '—') + '</span><span>◷ ' + esc(duration ? duration + ' · ' : '') + esc(expiry) + '</span></div>' +
+    '<div class="farm-stats"><div><strong>' + s.partners + '</strong><small>Partners</small></div><div><strong>' + s.palaiGoats + '</strong><small>Palai goats</small></div><div><strong>' + s.tradingGoats + '</strong><small>Trading goats</small></div></div>' +
+    '<div class="farm-total-line"><span>Total goats</span><strong>' + totalLabel + '</strong></div>' +
+    '<div class="farm-card-actions">' + actionButtons(f) + '</div></article>';
 }
 
 function render() {
-  const q = $('search').value.trim().toLowerCase();
-  const rows = farms.filter(
-    (f) =>
-      (activeFilter === 'All' || f.status === activeFilter) &&
-      [f.farmName, f.ownerName, f.mobileNumber, f.address, f.id].join(' ').toLowerCase().includes(q)
-  );
-
-  $('farmTable').innerHTML =
-    rows
-      .map((f) => {
-        const sub = f.subscription
-          ? `<div class="cell-strong">${esc(f.subscription.plan)}</div><div class="cell-sub">${f.daysLeft != null ? `${f.daysLeft} days left` : '—'}</div>`
-          : '<div class="cell-sub">No subscription yet</div>';
-        const initials = (f.farmName || 'F').split(' ').map((x) => x[0]).slice(0, 2).join('').toUpperCase();
-        return `
-      <tr>
-        <td class="check-cell"><input type="checkbox" class="row-check" data-id="${esc(f.id)}" ${selected.has(f.id) ? 'checked' : ''}></td>
-        <td><div class="user-cell">
-          <div class="avatar">${esc(initials)}</div>
-          <div><div class="user-name">${esc(f.farmName)}</div><div class="cell-mono">ID: ${esc(f.id)}</div></div>
-        </div></td>
-        <td><div class="cell-strong">${esc(f.ownerName)}</div><div class="cell-sub">${esc(f.mobileNumber)}</div></td>
-        <td>${sub}</td>
-        <td><span class="badge ${f.status}">${esc(f.status)}</span></td>
-        <td>${rowActions(f)}</td>
-      </tr>`;
-      })
-      .join('') || '<tr><td colspan="6" class="empty-row">No farm records found.</td></tr>';
-
-  $('totalFarms').textContent = farms.length;
-  $('activeFarms').textContent = farms.filter((f) => f.status === 'Active').length;
-  $('pendingFarms').textContent = farms.filter((f) => f.status === 'Pending').length;
-  $('blockedFarms').textContent = farms.filter((f) => f.status === 'Blocked').length;
-  renderPills();
-  renderSelectBar();
+  const q = searchTerm.trim().toLowerCase();
+  const rows = farms.filter((f) => {
+    const statusMatch = activeFilter === 'All' || f.status === activeFilter;
+    const searchMatch = [f.farmName, f.ownerName, f.mobileNumber, f.address, f.id, f.email].join(' ').toLowerCase().includes(q);
+    return statusMatch && searchMatch;
+  });
+  $('farmCards').innerHTML = rows.map(farmCard).join('') || '<div class="farms-empty"><strong>No farms found</strong><span>Try another search or filter.</span></div>';
+  $('totalUnits').textContent = farms.length + ' Total Unit' + (farms.length === 1 ? '' : 's');
+  $('sumGoats').textContent = Object.values(stats).reduce((n, x) => n + (x.totalGoats || 0), 0);
+  $('sumPartners').textContent = Object.values(stats).reduce((n, x) => n + (x.partners || 0), 0);
+  const activeWithExpiry = farms.filter((f) => f.status === 'Active' && f.expiryDate);
+  const healthy = activeWithExpiry.filter((f) => (f.daysLeft ?? 0) > 30).length;
+  $('sumHealthy').textContent = activeWithExpiry.length ? Math.round((healthy / activeWithExpiry.length) * 100) + '%' : '—';
+  renderFilters();
 }
 
-function renderSelectBar() {
-  const bar = $('selectBar');
-  bar.classList.toggle('show', selected.size > 0);
-  $('selectCount').textContent = `${selected.size} selected`;
-  $('headCheck').checked = selected.size > 0 && selected.size === document.querySelectorAll('.row-check').length;
+async function refreshStats(showToast = false) {
+  $('syncStatus').textContent = 'Syncing…';
+  try { stats = await getAllFarmOperationalStats(farms); $('syncStatus').textContent = 'Synced just now'; render(); if (showToast) toast('Farm counts refreshed.'); }
+  catch (err) { $('syncStatus').textContent = 'Sync unavailable'; if (showToast) toast(err.message, true); }
 }
 
-// Live subscription: approve/reject/renew/block/unblock all show up here
-// automatically (including this admin's own action, echoed straight back
-// through the same listener) — nothing below needs to call load() again.
-watchFarms(
-  (list) => { farms = list; render(); },
-  (err) => toast(err.message, true)
-);
-
-async function loadPlans() {
-  try {
-    plans = await getPlans();
-    $('subPlan').innerHTML = plans.map((p) => `<option value="${esc(p.name)}" data-days="${p.days}" data-amount="${p.amount}">${esc(p.name)} — ₹${p.amount} / ${p.days} days</option>`).join('');
-  } catch { /* plans are optional to load; approve modal still works with manual entry */ }
-}
-
-/* ---------- Approve / Renew modal ---------- */
+watchFarms(async (list) => { farms = list; render(); await refreshStats(false); }, (err) => { $('syncStatus').textContent = 'Sync failed'; toast(err.message, true); });
 
 function openSubModal(f, mode) {
   $('subModalTitle').textContent = mode === 'approve' ? 'Approve Farm' : 'Renew Subscription';
-  $('subNote').textContent =
-    mode === 'approve'
-      ? 'The subscription countdown starts on the date you approve this farm, not the registration date.'
-      : 'Renewing extends the current expiry date (or starts from today if already expired).';
-  $('subFarmId').value = f.id;
-  $('subFarmId').dataset.mode = mode;
-  const firstPlan = plans[0];
-  $('subPlan').value = f.subscription?.plan || firstPlan?.name || '';
-  $('subDuration').value = f.subscription?.durationDays || firstPlan?.days || 365;
-  $('subAmount').value = f.subscription?.amount || firstPlan?.amount || '';
-  $('subPaymentStatus').value = f.payment?.status || 'Paid';
-  $('subPaymentDate').value = new Date().toISOString().slice(0, 10);
-  $('subPaymentRef').value = '';
+  $('subNote').textContent = mode === 'approve' ? 'Choose the subscription plan and duration.' : 'Renewing extends the current subscription expiry.';
+  $('subFarmId').value = f.id; $('subFarmId').dataset.mode = mode;
+  const firstPlan = plans[0]; $('subPlan').value = f.subscription?.plan || firstPlan?.name || ''; $('subDuration').value = f.subscription?.durationDays || firstPlan?.days || 365;
   $('subModal').classList.remove('hidden');
 }
-const closeSubModal = () => $('subModal').classList.add('hidden');
-$('closeSubModal').addEventListener('click', closeSubModal);
-$('cancelSubModal').addEventListener('click', closeSubModal);
-
-$('subPlan').addEventListener('change', (e) => {
-  const opt = e.target.selectedOptions[0];
-  if (opt?.dataset.days) $('subDuration').value = opt.dataset.days;
-  if (opt?.dataset.amount) $('subAmount').value = opt.dataset.amount;
-});
-
+function closeSubModal() { $('subModal').classList.add('hidden'); }
+$('closeSubModal').addEventListener('click', closeSubModal); $('cancelSubModal').addEventListener('click', closeSubModal);
+$('subPlan').addEventListener('change', (e) => { const opt = e.target.selectedOptions[0]; if (opt?.dataset.days) $('subDuration').value = opt.dataset.days; });
 $('subForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const id = $('subFarmId').value;
-  const mode = $('subFarmId').dataset.mode;
-  const body = {
-    plan: $('subPlan').value || 'Custom Plan',
-    durationDays: Number($('subDuration').value) || 1,
-    amount: Number($('subAmount').value) || 0,
-    paymentStatus: $('subPaymentStatus').value,
-    paymentDate: $('subPaymentDate').value,
-    paymentReference: $('subPaymentRef').value.trim(),
-  };
-  const btn = $('saveSub');
-  btn.disabled = true;
-  btn.textContent = 'Saving…';
-  try {
-    if (mode === 'approve') await approveFarm(id, body, (await adminUserPromise).email);
-    else await renewFarm(id, body);
-    closeSubModal();
-    toast(mode === 'approve' ? 'Farm approved and activated.' : 'Subscription renewed.');
-  } catch (err) {
-    toast(err.message, true);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Confirm';
-  }
+  e.preventDefault(); const id = $('subFarmId').value; const mode = $('subFarmId').dataset.mode;
+  const body = { plan: $('subPlan').value || 'Custom Plan', durationDays: Number($('subDuration').value) || 1 };
+  const btn = $('saveSub'); btn.disabled = true; btn.textContent = 'Saving…';
+  try { if (mode === 'approve') await approveFarm(id, body, (await adminUserPromise).email); else await renewFarm(id, body); closeSubModal(); toast(mode === 'approve' ? 'Farm approved and activated.' : 'Subscription renewed.'); }
+  catch (err) { toast(err.message, true); } finally { btn.disabled = false; btn.textContent = 'Confirm'; }
 });
 
-/* ---------- Reject / Block modal ---------- */
-
-function openReasonModal(f, action) {
-  $('reasonModalTitle').textContent = action === 'reject' ? 'Reject Farm' : 'Block Farm';
-  $('reasonFarmId').value = f.id;
-  $('reasonAction').value = action;
-  $('reasonText').value = '';
-  $('confirmReason').textContent = action === 'reject' ? 'Reject Farm' : 'Confirm Block';
-  $('reasonModal').classList.remove('hidden');
-}
-const closeReasonModal = () => $('reasonModal').classList.add('hidden');
-$('closeReasonModal').addEventListener('click', closeReasonModal);
-$('cancelReasonModal').addEventListener('click', closeReasonModal);
-
-$('reasonForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const id = $('reasonFarmId').value;
-  const action = $('reasonAction').value;
-  try {
-    if (action === 'reject') await rejectFarm(id, $('reasonText').value.trim(), (await adminUserPromise).email);
-    else await blockFarm(id, $('reasonText').value.trim(), (await adminUserPromise).email);
-    closeReasonModal();
-    toast(action === 'reject' ? 'Farm rejected.' : 'Farm blocked.');
-  } catch (err) {
-    toast(err.message, true);
-  }
-});
-
-/* ---------- View detail modal ---------- */
+function openReasonModal(f, action) { $('reasonModalTitle').textContent = action === 'reject' ? 'Reject Farm' : 'Block Farm'; $('reasonFarmId').value = f.id; $('reasonAction').value = action; $('reasonText').value = ''; $('confirmReason').textContent = action === 'reject' ? 'Reject Farm' : 'Confirm Block'; $('reasonModal').classList.remove('hidden'); }
+function closeReasonModal() { $('reasonModal').classList.add('hidden'); }
+$('closeReasonModal').addEventListener('click', closeReasonModal); $('cancelReasonModal').addEventListener('click', closeReasonModal);
+$('reasonForm').addEventListener('submit', async (e) => { e.preventDefault(); const id = $('reasonFarmId').value; const action = $('reasonAction').value; try { if (action === 'reject') await rejectFarm(id, $('reasonText').value.trim(), (await adminUserPromise).email); else await blockFarm(id, $('reasonText').value.trim(), (await adminUserPromise).email); closeReasonModal(); toast(action === 'reject' ? 'Farm rejected.' : 'Farm blocked.'); } catch (err) { toast(err.message, true); } });
 
 function openViewModal(f) {
-  $('viewModalTitle').textContent = f.farmName;
-  const rows = [
-    ['Farm ID', f.id],
-    ['Owner', f.ownerName],
-    ['Mobile', f.mobileNumber],
-    ['Email', f.email || '—'],
-    ['Address', f.address || '—'],
-    ['Status', f.status],
-    ['Plan', f.subscription?.plan || '—'],
-    ['Subscription Amount', f.subscription ? `₹${f.subscription.amount}` : '—'],
-    ['Approval Date', fmtDate(f.approvalDate)],
-    ['Subscription Start', fmtDate(f.startDate)],
-    ['Subscription Expiry', fmtDate(f.expiryDate)],
-    ['Days Left', f.daysLeft != null ? f.daysLeft : '—'],
-    ['Payment Status', f.payment?.status || '—'],
-    ['Payment Reference', f.payment?.reference || '—'],
-    ['Blocked', f.blocked?.blocked ? `Yes — ${f.blocked.reason || 'no reason given'}` : 'No'],
-    ['Rejection Reason', f.rejection?.reason || '—'],
-  ];
-  $('viewBody').innerHTML = rows
-    .map(([label, value]) => `<div class="detail-item"><span>${esc(label)}</span><strong>${esc(String(value))}</strong></div>`)
-    .join('');
+  const s = stats[f.id] || { partners: 0, palaiGoats: 0, tradingGoats: 0, totalGoats: 0 };
+  $('viewModalTitle').textContent = f.farmName; $('viewAvatar').textContent = initials(f.farmName);
+  $('viewStatus').innerHTML = '<span class="farm-status ' + statusClass(f.status) + '"><i></i>' + esc(f.status) + '</span>';
+  const rows = [['Farm ID',f.id],['Owner',f.ownerName],['Mobile',f.mobileNumber],['Email',f.email || '—'],['Partners',s.partners],['Palai goats',s.palaiGoats],['Trading goats',s.tradingGoats],['Total goats',s.totalGoats],['Plan',f.subscription?.plan || 'No subscription'],['Subscription start',fmtDate(f.startDate)],['Subscription expiry',fmtDate(f.expiryDate)],['Days left',f.daysLeft != null ? f.daysLeft : '—'],['Address',f.address || '—']];
+  $('viewBody').innerHTML = rows.map(([label,value]) => '<div class="detail-item"><span>' + esc(label) + '</span><strong>' + esc(String(value)) + '</strong></div>').join('');
   $('viewModal').classList.remove('hidden');
 }
 $('closeViewModal').addEventListener('click', () => $('viewModal').classList.add('hidden'));
-
-/* ---------- Table interactions ---------- */
-
-$('search').addEventListener('input', render);
-
-$('statusPills').addEventListener('click', (e) => {
-  const btn = e.target.closest('button[data-filter]');
-  if (!btn) return;
-  activeFilter = btn.dataset.filter;
-  render();
+function setSearch(value) { searchTerm = value; $('search').value = value; $('searchMobile').value = value; render(); }
+$('search').addEventListener('input', (e) => setSearch(e.target.value)); $('searchMobile').addEventListener('input', (e) => setSearch(e.target.value));
+$('statusPills').addEventListener('click', (e) => { const btn = e.target.closest('button[data-filter]'); if (!btn) return; activeFilter = btn.dataset.filter; render(); });
+async function refreshAll() { await refreshStats(true); }
+$('refreshCounts').addEventListener('click', refreshAll); $('refreshCounts2').addEventListener('click', refreshAll);
+$('farmCards').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-action]'); if (!btn) return; const farm = farms.find((f) => f.id === btn.dataset.id); if (!farm) return; const action = btn.dataset.action;
+  if (action === 'view') return openViewModal(farm); if (action === 'approve') return openSubModal(farm, 'approve'); if (action === 'renew') return openSubModal(farm, 'renew'); if (action === 'reject') return openReasonModal(farm, 'reject'); if (action === 'block') return openReasonModal(farm, 'block');
+  if (action === 'unblock') { try { await unblockFarm(farm.id); toast('Farm unblocked.'); } catch (err) { toast(err.message, true); } }
 });
 
-$('farmTable').addEventListener('change', (e) => {
-  if (!e.target.classList.contains('row-check')) return;
-  const id = e.target.dataset.id;
-  if (e.target.checked) selected.add(id); else selected.delete(id);
-  renderSelectBar();
+$('exportCsv').addEventListener('click', () => {
+  const rows = [['Farm ID','Farm','Owner','Mobile','Status','Partners','Palai Goats','Trading Goats','Total Goats','Plan','Expiry']];
+  farms.forEach((f) => { const s = stats[f.id] || {}; rows.push([f.id,f.farmName,f.ownerName,f.mobileNumber,f.status,s.partners||0,s.palaiGoats||0,s.tradingGoats||0,s.totalGoats||0,f.subscription?.plan||'',f.expiryDate||'']); });
+  const csv = rows.map((r) => r.map((v) => { const value = String(v ?? ''); return /[",\n]/.test(value) ? '"' + value.replace(/"/g, '""') + '"' : value; }).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'my-goat-farms-directory.csv'; a.click(); URL.revokeObjectURL(url);
 });
 
-$('headCheck').addEventListener('change', (e) => {
-  document.querySelectorAll('.row-check').forEach((cb) => {
-    cb.checked = e.target.checked;
-    if (e.target.checked) selected.add(cb.dataset.id); else selected.delete(cb.dataset.id);
-  });
-  renderSelectBar();
-});
-
-$('farmTable').addEventListener('click', (e) => {
-  const btn = e.target.closest('button[data-action]');
-  if (!btn) return;
-  const farm = farms.find((f) => f.id === btn.dataset.id);
-  if (!farm) return;
-  const action = btn.dataset.action;
-
-  if (action === 'view') return openViewModal(farm);
-  if (action === 'approve') return openSubModal(farm, 'approve');
-  if (action === 'renew') return openSubModal(farm, 'renew');
-  if (action === 'reject') return openReasonModal(farm, 'reject');
-  if (action === 'block') return openReasonModal(farm, 'block');
-
-  if (action === 'unblock') {
-    if (!confirm(`Unblock "${farm.farmName}"?`)) return;
-    unblockFarm(farm.id)
-      .then(() => toast('Farm unblocked.'))
-      .catch((err) => toast(err.message, true));
-  }
-});
-
-/* ---------- Bulk actions ---------- */
-
-$('bulkBlockBtn').addEventListener('click', async () => {
-  if (!selected.size) return;
-  const reason = prompt(`Block ${selected.size} selected farm(s). Reason (optional):`, '');
-  if (reason === null) return;
-  try {
-    await bulkBlockFarms([...selected], reason, (await adminUserPromise).email);
-    toast(`${selected.size} farm(s) blocked.`);
-    selected.clear();
-  } catch (err) {
-    toast(err.message, true);
-  }
-});
-
-document.addEventListener('keydown', (e) => {
-  if (e.key !== 'Escape') return;
-  [$('subModal'), $('reasonModal'), $('viewModal')].forEach((m) => m.classList.add('hidden'));
-});
-
-/* ---------- Boot ---------- */
+async function loadPlans() { try { plans = await getPlans(); $('subPlan').innerHTML = plans.map((p) => '<option value="' + esc(p.name) + '" data-days="' + p.days + '">' + esc(p.name) + ' — ' + p.days + ' days</option>').join(''); } catch { plans = [{ name: '1 Year', days: 365 }]; $('subPlan').innerHTML = '<option value="1 Year" data-days="365">1 Year — 365 days</option>'; } }
 loadPlans();
+document.addEventListener('keydown', (e) => { if (e.key !== 'Escape') return; [$('subModal'), $('reasonModal'), $('viewModal')].forEach((m) => m.classList.add('hidden')); });
