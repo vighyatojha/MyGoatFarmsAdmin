@@ -245,7 +245,6 @@ textarea.input { resize: vertical; min-height: 90px; padding-top: 10px; }
   color:var(--text-grey); cursor:pointer; font-size:22px;
 }
 .icon-action:hover { background:var(--green-pale); color:var(--green-dark); }
-.farms-page #topbarRoot > div:first-child { display:none; }
 .farms-page #topbarRoot { margin:0; }
 .farms-page #topbarRoot .admin-profile { margin:0; }
 
@@ -426,3 +425,65 @@ textarea.input { resize: vertical; min-height: 90px; padding-top: 10px; }
   .report-range #generateBtn { grid-column: 1 / -1; width: 100%; }
   .plan-grid { grid-template-columns: 1fr; padding: 16px; }
 }
+
+
+/* ============================================================
+   Farms page — header + drawer integration & compact phone sizing
+   (the hamburger is injected into .farms-top by admin-shell.js)
+   ============================================================ */
+@media (max-width: 1024px) {
+  .farms-page .admin-main { padding: 0 20px 28px; }
+  .farms-page .admin-top.farms-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 -20px;
+    padding: 8px 20px;
+    min-height: 60px;
+    background: rgba(255, 255, 255, .92);
+  }
+  .farms-top-search { flex: 1 1 auto; width: auto; max-width: 440px; }
+  .farms-top-actions { width: auto; margin-left: auto; gap: 8px; }
+  .farms-page #topbarRoot { padding: 4px; }
+}
+@media (max-width: 768px) {
+  .farms-top-search, .sync-label { display: none; }
+  .farms-search-mobile { display: block; }
+}
+@media (max-width: 640px) {
+  .farms-page .admin-main { padding: 0 14px 24px; }
+  .farms-page .admin-top.farms-top { margin: 0 -14px; padding: 8px 14px; min-height: 54px; }
+  .icon-action { width: 36px; height: 36px; font-size: 20px; }
+  .farms-heading { padding: 16px 0 12px; }
+  .farms-heading h1 { font-size: 24px; }
+  .farms-heading p { font-size: 12px; line-height: 1.5; }
+  .total-units { font-size: 10.5px; padding: 3px 8px; }
+  .farms-search-mobile input { height: 40px; font-size: 13px; }
+  .farm-filter { padding: 6px 11px; font-size: 11.5px; }
+  .refresh-counts { display: none; }            /* the ↻ icon in the top bar does the same */
+  .farm-card-grid { gap: 12px; }
+  .farm-card { padding: 14px 13px; border-radius: 16px; }
+  .farm-name-row h2 { font-size: 17px; }
+  .farm-stats strong { font-size: 21px; }
+  .farm-stats small { font-size: 9px; }
+  .farm-stats > div { min-height: 56px; }
+  .farm-action { padding: 7px 10px; font-size: 11.5px; }
+  .farms-summary-strip { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .summary-mini, .export-card { min-height: 64px; padding: 12px; gap: 10px; }
+  .summary-mini strong { font-size: 20px; }
+  .export-card { grid-column: 1 / -1; }
+  .plan-grid, .report-grid { padding: 14px; }
+  .activity-list { padding: 4px 14px 16px; }
+  .select-bar { padding: 10px 14px; }
+}
+
+/* Search icon vertically centred; filter pills scroll instead of wrapping on phones */
+.farms-search-mobile span { top: 50%; transform: translateY(-52%); line-height: 1; }
+@media (max-width: 640px) {
+  .toolbar-stacked .filter-pills { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .toolbar-stacked .filter-pills::-webkit-scrollbar { display: none; }
+  .toolbar-stacked .filter-pills .pill { flex: 0 0 auto; }
+}
+
+.table-wrap th { white-space: nowrap; }
+@media (max-width: 640px) { .table-wrap th { white-space: normal; } }
