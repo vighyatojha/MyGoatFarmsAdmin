@@ -1,7 +1,7 @@
 import { initAdminShell, toast, esc, fmtDate } from './admin-shell.js';
 // Cache-bust the Firestore service so admin browsers do not keep an older
 // approve/renew implementation after a deployment.
-import { watchFarms, getAllFarmOperationalStats, approveFarm, renewFarm, rejectFarm, blockFarm, unblockFarm, deleteFarm, getPlans } from './db.js?v=20260928-4';
+import { watchFarms, getAllFarmOperationalStats, approveFarm, renewFarm, rejectFarm, blockFarm, unblockFarm, deleteFarm, getPlans } from './db.js?v=20260928-5';
 
 const adminUserPromise = initAdminShell({ active: 'farms', title: 'Farms', subtitle: 'Farm operations and subscription management.' });
 const $ = (id) => document.getElementById(id);
