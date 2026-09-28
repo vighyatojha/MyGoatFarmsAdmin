@@ -1,6 +1,6 @@
 import { db } from './firebase-config.js';
 import {
-  collection, doc, getDoc, getDocs, addDoc, setDoc, writeBatch, onSnapshot,
+  collection, collectionGroup, doc, getDoc, getDocs, addDoc, setDoc, writeBatch, onSnapshot, query, where,
 } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -78,6 +78,39 @@ export function watchFarms(onChange, onError) {
     (snap) => onChange(snap.docs.map(toPublicFarm).sort((a, b) => (b.farmName || '').localeCompare(a.farmName || ''))),
     onError
   );
+}
+
+export async function getFarmOperationalStats(farmId) {
+  const [partnerSnap, palaiSnap, tradingSnap] = await Promise.all([
+    getDocs(collection(db, 'farms', farmId, 'partners')),
+    getDocs(query(collectionGroup(db, 'goats'), where('farmId', '==', farmId))),
+    getDocs(collection(db, 'farms', farmId, 'tradingGoats')),
+  ]);
+
+  const partnerDocs = partnerSnap.docs.filter((s) => {
+    const d = s.data() || {};
+    return String(d.status || '').toLowerCase() !== 'rejected';
+  });
+
+  return {
+    partners: partnerDocs.length,
+    palaiGoats: palaiSnap.size,
+    tradingGoats: tradingSnap.size,
+    totalGoats: palaiSnap.size + tradingSnap.size,
+  };
+}
+
+export async function getAllFarmOperationalStats(farms) {
+  const entries = await Promise.all(
+    farms.map(async (farm) => {
+      try {
+        return [farm.id, await getFarmOperationalStats(farm.id)];
+      } catch {
+        return [farm.id, { partners: 0, palaiGoats: 0, tradingGoats: 0, totalGoats: 0, error: true }];
+      }
+    })
+  );
+  return Object.fromEntries(entries);
 }
 
 export async function getFarm(id) {
