@@ -16,30 +16,6 @@ const NAV = [
 
 const icon = (name) => `<svg class="svg-icon" viewBox="0 0 24 24">${ICONS[name] || ''}</svg>`;
 
-function sidebarHtml(active) {
-  const links = NAV.map(
-    (item) => `
-      <a class="side-link${item.key === active ? ' active' : ''}" href="${item.href}">
-        ${icon(item.key)}
-        <span>${item.label}</span>
-      </a>`
-  ).join('');
-
-  return `
-    <a class="brand sidebar-brand" href="/">
-      <span class="logo-ring"><img src="../assets/img/logo.png" alt="" width="36" height="36"></span>
-      <span class="brand-name">My Goat Farms</span>
-    </a>
-    <div class="side-label">ADMINISTRATION</div>
-    <nav class="side-nav">${links}</nav>
-    <div class="sidebar-bottom">
-      <button id="shellLogout" class="side-link" type="button">
-        <svg class="svg-icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        <span>Logout</span>
-      </button>
-    </div>`;
-}
-
 function topbarHtml(title, subtitle, email) {
   const links = NAV.map((item) =>
     `<a class="admin-nav-link" data-nav-key="${item.key}" href="${item.href}">${icon(item.key)}<span>${item.label}</span></a>`
