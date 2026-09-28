@@ -1,5 +1,5 @@
-import { initAdminShell, esc, fmtDate, fmtMoney, toast } from './admin-shell.js';
-import { watchFarms, watchEnquiries, watchPayments, summarizeEarnings } from './db.js';
+import { initAdminShell, esc, fmtDate, toast } from './admin-shell.js';
+import { watchFarms, watchEnquiries } from './db.js';
 
 // Not awaited: the shell paints immediately inside initAdminShell(), and the
 // live subscriptions below start fetching this page's data right away too,
@@ -11,15 +11,11 @@ initAdminShell({ active: 'dashboard', title: 'Dashboard', subtitle: 'An overview
 // every time any one of them updates (a new farm, enquiry, or payment).
 let farms = [];
 let enquiries = [];
-let payments = [];
 
 function render() {
-  const rev = summarizeEarnings(payments);
-
   document.getElementById('statPending').textContent = farms.filter((f) => f.status === 'Pending').length;
   document.getElementById('statActive').textContent = farms.filter((f) => f.status === 'Active').length;
   document.getElementById('statBlocked').textContent = farms.filter((f) => f.status === 'Blocked').length;
-  document.getElementById('statRevenue').textContent = fmtMoney(rev.total);
 
   const enqBox = document.getElementById('enquiryActivity');
   enqBox.innerHTML =
@@ -50,4 +46,3 @@ function render() {
 
 watchFarms((list) => { farms = list; render(); }, (err) => toast(err.message, true));
 watchEnquiries((list) => { enquiries = list; render(); }, (err) => toast(err.message, true));
-watchPayments((list) => { payments = list; render(); }, (err) => toast(err.message, true));
