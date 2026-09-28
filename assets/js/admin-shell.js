@@ -107,19 +107,6 @@ export async function initAdminShell({ active, title, subtitle }) {
 
   if (topbarRoot) topbarRoot.innerHTML = topbarHtml(title, subtitle, user.email);
   document.getElementById('shellLogout')?.addEventListener('click', logout);
-  document.getElementById('mobileMenuToggle')?.addEventListener('click', () => {
-    const open = !document.body.classList.contains('sidebar-open');
-    document.body.classList.toggle('sidebar-open', open);
-    document.getElementById('mobileMenuToggle')?.setAttribute('aria-expanded', String(open));
-  });
-  document.getElementById('mobileSidebarClose')?.addEventListener('click', () => {
-    document.body.classList.remove('sidebar-open');
-    document.getElementById('mobileMenuToggle')?.setAttribute('aria-expanded', 'false');
-  });
-  sidebarRoot?.querySelectorAll('.side-link[href]').forEach((link) => {
-    link.addEventListener('click', () => document.body.classList.remove('sidebar-open'));
-  });
-
   return user;
 }
 
