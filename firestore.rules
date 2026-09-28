@@ -744,6 +744,22 @@ service cloud.firestore {
 
 
     // =================================================================
+    // APP SUPPORT CONTACT
+    //
+    // The Flutter app reads config/adminContact while a farm is pending,
+    // rejected, or blocked. Any signed-in user may read this single
+    // contact document; only an admin may create/update it.
+    // =================================================================
+
+    match /config/{docId} {
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow create, update: if isAdmin();
+      allow delete: if false;
+    }
+
+
+    // =================================================================
     // DEFAULT DENY
     //
     // Anything not explicitly covered above is denied.
