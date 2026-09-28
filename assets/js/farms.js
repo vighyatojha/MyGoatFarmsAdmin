@@ -1,7 +1,7 @@
 import { initAdminShell, toast, esc, fmtDate } from './admin-shell.js';
 // Cache-bust the Firestore service so admin browsers do not keep an older
 // approve/renew implementation after a deployment.
-import { watchFarms, getAllFarmOperationalStats, approveFarm, renewFarm, rejectFarm, blockFarm, unblockFarm, getPlans } from './db.js?v=20260928-3';
+import { watchFarms, getAllFarmOperationalStats, approveFarm, renewFarm, rejectFarm, blockFarm, unblockFarm, deleteFarm, getPlans } from './db.js?v=20260928-4';
 
 const adminUserPromise = initAdminShell({ active: 'farms', title: 'Farms', subtitle: 'Farm operations and subscription management.' });
 const $ = (id) => document.getElementById(id);
@@ -33,6 +33,7 @@ function actionButtons(f) {
   } else if (f.status === 'Blocked') {
     buttons.push('<button class="farm-action renew" type="button" data-action="unblock" data-id="' + esc(f.id) + '">Unblock</button>');
   }
+  buttons.push('<button class="farm-action reject" type="button" data-action="delete" data-id="' + esc(f.id) + '">Delete</button>');
   return buttons.join('');
 }
 
@@ -131,6 +132,18 @@ $('farmCards').addEventListener('click', async (e) => {
   const btn = e.target.closest('button[data-action]'); if (!btn) return; const farm = farms.find((f) => f.id === btn.dataset.id); if (!farm) return; const action = btn.dataset.action;
   if (action === 'view') return openViewModal(farm); if (action === 'approve') return openSubModal(farm, 'approve'); if (action === 'renew') return openSubModal(farm, 'renew'); if (action === 'reject') return openReasonModal(farm, 'reject'); if (action === 'block') return openReasonModal(farm, 'block');
   if (action === 'unblock') { try { await unblockFarm(farm.id); toast('Farm unblocked.'); } catch (err) { toast(err.message, true); } }
+  if (action === 'delete') {
+    const confirmed = window.confirm(
+      'Delete "' + (farm.farmName || farm.id) + '" (' + farm.id + ')?\n\nThis permanently removes the farm and its stored farm data. This action cannot be undone.'
+    );
+    if (!confirmed) return;
+    try {
+      await deleteFarm(farm.id);
+      toast('Farm deleted.');
+    } catch (err) {
+      toast(err?.message || 'Could not delete farm.', true);
+    }
+  }
 });
 
 $('exportCsv').addEventListener('click', () => {
