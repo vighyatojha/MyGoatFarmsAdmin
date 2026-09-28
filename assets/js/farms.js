@@ -40,12 +40,15 @@ function farmCard(f) {
   const duration = f.subscription?.durationDays ? Math.round(f.subscription.durationDays / 30) + ' mo' : '';
   const expiry = f.daysLeft != null ? Math.max(f.daysLeft, 0) + ' days left' : 'No subscription yet';
   const status = f.status || 'Pending';
+  const partnerLabel = s.error ? '—' : s.partners;
+  const palaiLabel = s.error ? '—' : s.palaiGoats;
+  const tradingLabel = s.error ? '—' : s.tradingGoats;
   const totalLabel = s.error ? '—' : s.totalGoats;
   return '<article class="farm-card">' +
     '<div class="farm-card-head"><div><div class="farm-name-row"><h2>' + esc(f.farmName) + '</h2><span class="farm-status ' + statusClass(status) + '"><i></i>' + esc(status) + '</span></div>' +
     '<div class="farm-plan"><span>' + esc(f.id) + '</span><b>' + esc(plan) + '</b></div></div></div>' +
     '<div class="farm-meta"><span>◉ ' + esc(f.ownerName || '—') + ' · ' + esc(f.mobileNumber || '—') + '</span><span>◷ ' + esc(duration ? duration + ' · ' : '') + esc(expiry) + '</span></div>' +
-    '<div class="farm-stats"><div><strong>' + s.partners + '</strong><small>Partners</small></div><div><strong>' + s.palaiGoats + '</strong><small>Palai goats</small></div><div><strong>' + s.tradingGoats + '</strong><small>Trading goats</small></div></div>' +
+    '<div class="farm-stats"><div><strong>' + partnerLabel + '</strong><small>Partners</small></div><div><strong>' + palaiLabel + '</strong><small>Palai goats</small></div><div><strong>' + tradingLabel + '</strong><small>Trading goats</small></div></div>' +
     '<div class="farm-total-line"><span>Total goats</span><strong>' + totalLabel + '</strong></div>' +
     '<div class="farm-card-actions">' + actionButtons(f) + '</div></article>';
 }
@@ -59,8 +62,10 @@ function render() {
   });
   $('farmCards').innerHTML = rows.map(farmCard).join('') || '<div class="farms-empty"><strong>No farms found</strong><span>Try another search or filter.</span></div>';
   $('totalUnits').textContent = farms.length + ' Total Unit' + (farms.length === 1 ? '' : 's');
-  $('sumGoats').textContent = Object.values(stats).reduce((n, x) => n + (x.totalGoats || 0), 0);
-  $('sumPartners').textContent = Object.values(stats).reduce((n, x) => n + (x.partners || 0), 0);
+  const statValues = Object.values(stats);
+  const statsHaveErrors = statValues.some((x) => x.error);
+  $('sumGoats').textContent = statsHaveErrors ? '—' : statValues.reduce((n, x) => n + (x.totalGoats || 0), 0);
+  $('sumPartners').textContent = statsHaveErrors ? '—' : statValues.reduce((n, x) => n + (x.partners || 0), 0);
   const activeWithExpiry = farms.filter((f) => f.status === 'Active' && f.expiryDate);
   const healthy = activeWithExpiry.filter((f) => (f.daysLeft ?? 0) > 30).length;
   $('sumHealthy').textContent = activeWithExpiry.length ? Math.round((healthy / activeWithExpiry.length) * 100) + '%' : '—';
@@ -69,7 +74,7 @@ function render() {
 
 async function refreshStats(showToast = false) {
   $('syncStatus').textContent = 'Syncing…';
-  try { stats = await getAllFarmOperationalStats(farms); $('syncStatus').textContent = 'Synced just now'; render(); if (showToast) toast('Farm counts refreshed.'); }
+  try { stats = await getAllFarmOperationalStats(farms); const failed = Object.values(stats).some((x) => x.error); $('syncStatus').textContent = failed ? 'Some counts unavailable' : 'Synced just now'; render(); if (showToast) toast(failed ? 'Some counts could not load. Check Firestore rules.' : 'Farm counts refreshed.', failed); }
   catch (err) { $('syncStatus').textContent = 'Sync unavailable'; if (showToast) toast(err.message, true); }
 }
 
