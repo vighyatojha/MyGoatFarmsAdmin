@@ -4,6 +4,7 @@
 // Actual security comes from Firebase Authentication + the rules in firestore.rules.
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js';
 import { getAuth } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js';
+import { getFunctions } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-functions.js';
 import {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
 } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js';
@@ -20,6 +21,7 @@ const firebaseConfig = {
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+export const functions = getFunctions(app);
 
 // Every admin page here is a full browser navigation (separate .html file),
 // not an SPA route change — so a plain getFirestore()'s memory-only cache
