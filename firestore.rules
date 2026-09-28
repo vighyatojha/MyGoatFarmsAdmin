@@ -422,7 +422,7 @@ service cloud.firestore {
         // Owner and existing (approved) partners can read partner
         // information.
         allow read:
-          if isOwnerOrPartner(farmId);
+          if isOwnerOrPartner(farmId) || isAdmin();
 
         // Only owner can add/update/remove partners — this is what
         // makes approve/reject/disable/enable owner-only: those are
