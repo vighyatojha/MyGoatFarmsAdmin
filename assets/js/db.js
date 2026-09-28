@@ -81,22 +81,67 @@ export function watchFarms(onChange, onError) {
 }
 
 export async function getFarmOperationalStats(farmId) {
-  const [partnerSnap, palaiSnap, tradingSnap] = await Promise.all([
-    getDocs(collection(db, 'farms', farmId, 'partners')),
-    getDocs(query(collectionGroup(db, 'goats'), where('farmId', '==', farmId))),
-    getDocs(collection(db, 'farms', farmId, 'tradingGoats')),
+  // Match the Flutter app's real Firestore structure exactly:
+  //   farms/{farmId}/partners/{partnerId}
+  //   farms/{farmId}/palaiCustomers/{customerId}/goats/{goatId}
+  //   farms/{farmId}/tradingGoats/{goatId}
+  //
+  // Palai goats are intentionally read through each customer instead of a
+  // collection-group query. This mirrors FirestoreService.allActiveGoatsStream
+  // while avoiding a dependency on a collection-group index/rule mismatch.
+
+  const partnersPromise = getDocs(
+    collection(db, 'farms', farmId, 'partners')
+  );
+
+  const customersPromise = getDocs(
+    collection(db, 'farms', farmId, 'palaiCustomers')
+  );
+
+  const tradingPromise = getDocs(
+    collection(db, 'farms', farmId, 'tradingGoats')
+  );
+
+  const [partnerSnap, customerSnap, tradingSnap] = await Promise.all([
+    partnersPromise,
+    customersPromise,
+    tradingPromise,
   ]);
 
-  const partnerDocs = partnerSnap.docs.filter((s) => {
-    const d = s.data() || {};
-    return String(d.status || '').toLowerCase() !== 'rejected';
+  const partnerDocs = partnerSnap.docs.filter((snap) => {
+    const data = snap.data() || {};
+    const status = String(data.status || 'active').toLowerCase();
+    return status !== 'rejected' && status !== 'disabled';
   });
+
+  let palaiGoats = 0;
+
+  // The Flutter app stores Customer-Palai goats at:
+  // farms/{farmId}/palaiCustomers/{customerId}/goats
+  await Promise.all(
+    customerSnap.docs.map(async (customerDoc) => {
+      const goatsSnap = await getDocs(
+        query(
+          collection(
+            db,
+            'farms',
+            farmId,
+            'palaiCustomers',
+            customerDoc.id,
+            'goats'
+          ),
+          where('isCheckedOut', '==', false)
+        )
+      );
+      palaiGoats += goatsSnap.size;
+    })
+  );
 
   return {
     partners: partnerDocs.length,
-    palaiGoats: palaiSnap.size,
+    palaiGoats,
     tradingGoats: tradingSnap.size,
-    totalGoats: palaiSnap.size + tradingSnap.size,
+    totalGoats: palaiGoats + tradingSnap.size,
   };
 }
 
@@ -105,11 +150,23 @@ export async function getAllFarmOperationalStats(farms) {
     farms.map(async (farm) => {
       try {
         return [farm.id, await getFarmOperationalStats(farm.id)];
-      } catch {
-        return [farm.id, { partners: 0, palaiGoats: 0, tradingGoats: 0, totalGoats: 0, error: true }];
+      } catch (error) {
+        console.error('Farm operational stats failed for', farm.id, error);
+        return [
+          farm.id,
+          {
+            partners: 0,
+            palaiGoats: 0,
+            tradingGoats: 0,
+            totalGoats: 0,
+            error: true,
+            errorMessage: error?.message || 'Unable to load operational data',
+          },
+        ];
       }
     })
   );
+
   return Object.fromEntries(entries);
 }
 
