@@ -1,12 +1,7 @@
-import { db, app } from './firebase-config.js?v=20260928-2';
-import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-functions.js';
-import { explainCallableError } from './errors.js';
+import { db } from './firebase-config.js?v=20260928-2';
 import {
   collection, collectionGroup, doc, getDoc, getDocs, addDoc, setDoc, writeBatch, onSnapshot, query, where,
 } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js';
-
-// Same region the deleteFarm Cloud Function is pinned to (functions/index.js).
-const functions = getFunctions(app, 'us-central1');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const nowIso = () => new Date().toISOString();
@@ -333,19 +328,137 @@ export async function renewFarm(id, { plan, durationDays, amount, paymentStatus,
   return getFarm(id);
 }
 
-export async function deleteFarm(id) {
+/* ---------------------------------------------------------------------
+   Farm deletion — done from the browser, authorised by firestore.rules
+   (isAdmin()), no Cloud Function involved.
+
+   A browser cannot ask Firestore "which sub-collections does this document
+   have?", so the collections under a farm are listed here by name, mirroring
+   how the Flutter app nests its data. Everything is deleted deepest-first and
+   the farm document goes LAST — if anything fails half-way the farm still
+   shows up in the list and pressing Delete again simply finishes the job.
+
+   If the app ever gets a NEW sub-collection, add its name to FARM_TREE.
+   --------------------------------------------------------------------- */
+const leaves = (...names) => Object.fromEntries(names.map((n) => [n, {}]));
+
+const GOAT_CHILDREN = leaves(
+  'healthRecords', 'healthEvents', 'palaiWeightRecords', 'weightRecords',
+  'vaccinationRecords', 'medicineRecords', 'hoofCuttingRecords',
+  'hairTrimmingRecords', 'monthlyPhotos', 'reports'
+);
+
+const FARM_TREE = {
+  ...leaves(
+    'activities', 'bills', 'billingRecords', 'paymentRecords', 'payments',
+    'transactions', 'monthlyBills', 'expenses', 'ownFarmExpenses', 'sales',
+    'customers', 'suppliers', 'supplierLedger', 'stockMovements',
+    'tradingSummary', 'tradingCounters', 'notifications', 'notificationTokens'
+  ),
+  stockItems: leaves('movements'),
+  partners: leaves('settings'),
+  deathRecords: leaves('proofs'),
+  tradingPurchases: leaves('receivings', 'payments'),
+  tradingGoats: leaves('weightHistory', 'healthRecords'),
+  ownFarmGoats: leaves('growthRecords', 'healthEvents', 'breedingRecords'),
+  palaiCustomers: { goats: GOAT_CHILDREN },
+};
+
+const DELETE_BATCH_SIZE = 400; // Firestore allows 500 writes per batch
+
+async function mapLimit(items, limit, fn) {
+  let next = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) await fn(items[next++]);
+  });
+  await Promise.all(workers);
+}
+
+async function deleteRefs(refs, progress) {
+  for (let i = 0; i < refs.length; i += DELETE_BATCH_SIZE) {
+    const chunk = refs.slice(i, i + DELETE_BATCH_SIZE);
+    const batch = writeBatch(db);
+    chunk.forEach((ref) => batch.delete(ref));
+    await batch.commit();
+    progress.count += chunk.length;
+    if (progress.onProgress) progress.onProgress(progress.count);
+  }
+}
+
+async function deleteCollectionTree(colRef, tree, progress) {
+  const snap = await getDocs(colRef);
+  if (snap.empty) return;
+
+  const childNames = Object.keys(tree);
+  if (childNames.length) {
+    await mapLimit(snap.docs, 5, async (d) => {
+      for (const name of childNames) {
+        await deleteCollectionTree(collection(d.ref, name), tree[name], progress);
+      }
+    });
+  }
+  await deleteRefs(snap.docs.map((d) => d.ref), progress);
+}
+
+function explainDeleteError(err) {
+  const code = String(err?.code || '');
+  if (code === 'farm-not-found') return err.message;
+  if (code === 'permission-denied') {
+    return 'Firestore rules blocked the deletion. Publish the updated firestore.rules (Firebase Console → Firestore → Rules) and make sure your admin account has a document in the "admins" collection.';
+  }
+  if (code === 'unauthenticated') return 'Your admin session has expired. Please sign in again.';
+  if (code === 'unavailable' || code === 'deadline-exceeded') {
+    return 'Network problem while deleting. Some data may already be removed — press Delete again to finish.';
+  }
+  return (err?.message || 'Could not delete farm.') + ' (Press Delete again to retry — already-removed data is skipped.)';
+}
+
+export async function deleteFarm(id, onProgress) {
   const farmId = String(id || '').trim();
   if (!farmId) throw new Error('Farm ID is required.');
 
+  const farmRef = doc(db, 'farms', farmId);
+  const progress = { count: 0, onProgress };
+
   try {
-    // The function is allowed up to 540s (recursive delete of a big farm), but
-    // the SDK's default client timeout is 70s — match it so we don't give up early.
-    const callable = httpsCallable(functions, 'deleteFarm', { timeout: 540000 });
-    const res = await callable({ farmId });
-    if (res?.data?.success === false) throw new Error('The server did not confirm the deletion.');
+    const farmSnap = await getDoc(farmRef);
+    if (!farmSnap.exists()) {
+      throw Object.assign(new Error('Farm ' + farmId + ' was not found (it may already be deleted).'), { code: 'farm-not-found' });
+    }
+    const mobile = String(farmSnap.data().mobileNumber || '').trim();
+
+    // 1) Everything stored under the farm, deepest first.
+    await mapLimit(Object.keys(FARM_TREE), 4, (name) =>
+      deleteCollectionTree(collection(farmRef, name), FARM_TREE[name], progress)
+    );
+
+    // 2) This farm's subscription payment records (top-level collection).
+    const payments = await getDocs(query(subscriptionPaymentsCol, where('farmId', '==', farmId)));
+    await deleteRefs(payments.docs.map((d) => d.ref), progress);
+
+    // 3) The mobile-number marker, only if it really points at this farm,
+    //    so the same number can register again later.
+    //    Best-effort: the Flutter app does not write this collection today and
+    //    the live rules may not cover it, so a permission error here must not
+    //    fail an otherwise complete deletion.
+    if (mobile) {
+      try {
+        const mobileRef = doc(db, 'mobileIndex', mobile);
+        const mobileSnap = await getDoc(mobileRef);
+        if (mobileSnap.exists() && mobileSnap.data()?.farmId === farmId) {
+          await deleteRefs([mobileRef], progress);
+        }
+      } catch (err) {
+        if (err?.code !== 'permission-denied') throw err;
+        console.warn('mobileIndex cleanup skipped (not permitted by current rules).');
+      }
+    }
+
+    // 4) The farm document itself — last, so a failed run can be retried.
+    await deleteRefs([farmRef], progress);
     return true;
   } catch (err) {
-    const wrapped = new Error(explainCallableError(err, 'Could not delete farm.'));
+    const wrapped = new Error(explainDeleteError(err));
     wrapped.code = err?.code;
     throw wrapped;
   }
