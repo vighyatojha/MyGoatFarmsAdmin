@@ -1,7 +1,7 @@
 import { initAdminShell, toast, esc, fmtDate } from './admin-shell.js';
 // Cache-bust the Firestore service so admin browsers do not keep an older
 // approve/renew implementation after a deployment.
-import { watchFarms, getAllFarmOperationalStats, approveFarm, renewFarm, rejectFarm, blockFarm, unblockFarm, deleteFarm, getPlans } from './db.js?v=20260929-1';
+import { watchFarms, getAllFarmOperationalStats, approveFarm, renewFarm, rejectFarm, blockFarm, unblockFarm, deleteFarm, getPlans } from './db.js?v=20260929-2';
 
 const adminUserPromise = initAdminShell({ active: 'farms', title: 'Farms', subtitle: 'Farm operations and subscription management.' });
 const $ = (id) => document.getElementById(id);
@@ -140,7 +140,7 @@ $('farmCards').addEventListener('click', async (e) => {
     const originalLabel = btn.textContent;
     btn.disabled = true; btn.textContent = 'Deleting…';
     try {
-      await deleteFarm(farm.id);
+      await deleteFarm(farm.id, (n) => { btn.textContent = 'Deleting… ' + n; });
       toast('Farm deleted.');
     } catch (err) {
       toast(err?.message || 'Could not delete farm.', true);
