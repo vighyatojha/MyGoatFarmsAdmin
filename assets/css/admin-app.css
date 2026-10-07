@@ -147,8 +147,9 @@ input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--leaf); c
    Sign in
    ========================================================================== */
 .login { min-height: 100vh; min-height: 100dvh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 520px); }
-.login-art { position: relative; overflow: hidden; isolation: isolate; background: #d7ecc8; display: flex; flex-direction: column; justify-content: flex-start; padding: clamp(32px, 5vw, 64px); }
-.farm { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
+.login-art { position: relative; overflow: hidden; isolation: isolate; background: linear-gradient(180deg, #eaf5e0 0%, #d9edcb 55%, #a8d394 100%); display: flex; flex-direction: column; justify-content: flex-start; padding: clamp(32px, 5vw, 64px); }
+.sky { position: absolute; left: 0; top: 0; width: 100%; height: 42%; z-index: -2; }
+.farm { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: auto; max-height: 64%; z-index: -1; }
 .art-copy { display: grid; gap: 20px; max-width: 460px; }
 .art-copy img { border-radius: 50%; background: #fff; box-shadow: 0 0 0 6px rgba(255, 255, 255, .55), 0 12px 30px -12px rgba(23, 61, 36, .4); }
 .login-art-line { font-family: var(--font-head); font-weight: 700; font-size: clamp(28px, 3.2vw, 44px); line-height: 1.08; color: var(--pasture); max-width: 15ch; }
@@ -192,49 +193,58 @@ input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--leaf); c
 .sheep, .goat-g { animation: breathe 3s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
 @keyframes breathe { 50% { transform: scaleY(1.025); } }
 
-/* ---- The visitor goat ---- */
-.peek-goat { position: absolute; right: clamp(8px, 4%, 40px); bottom: -6px; width: clamp(150px, 34%, 230px); z-index: 2; transform: translateY(105%); transition: transform .75s var(--spring, cubic-bezier(.34, 1.4, .64, 1)); pointer-events: none; }
-.peek-goat.up { transform: translateY(0); }
-.peek-goat.leaving { transition: transform .6s cubic-bezier(.5, 0, .75, 0); }
-.peek-svg { width: 100%; height: auto; overflow: visible; filter: drop-shadow(0 18px 24px rgba(23, 61, 36, .25)); }
-.peek-head { transform-box: fill-box; transform-origin: 50% 90%; transition: transform .6s cubic-bezier(.34, 1.4, .64, 1); }
-.peek-goat.up .peek-head { animation: head-hello 1.4s .6s ease-in-out 1; }
-.peek-goat.look .peek-head { transform: rotate(9deg) translateX(4px); animation: none; }
-.peek-goat.shy .peek-head { transform: rotate(-7deg) translateY(4px); }
+/* ---- The visiting goat (centre stage) ---- */
+.goat-stage { position: fixed; inset: 0; z-index: 90; display: grid; place-items: end center; pointer-events: none; visibility: hidden; transition: visibility 0s .7s; }
+.goat-stage.on { pointer-events: auto; visibility: visible; transition: visibility 0s; cursor: pointer; }
+.goat-veil { position: absolute; inset: 0; background: rgba(23, 61, 36, .28); backdrop-filter: blur(9px) saturate(1.1); -webkit-backdrop-filter: blur(9px) saturate(1.1); opacity: 0; transition: opacity .6s ease; }
+.goat-stage.on .goat-veil { opacity: 1; }
+.big-goat { position: relative; width: min(660px, 94vw, 82vh); transform: translateY(105%); transition: transform .9s cubic-bezier(.34, 1.3, .64, 1); }
+.goat-stage.up .big-goat { transform: translateY(0); }
+.goat-stage.leaving .big-goat { transform: translateY(105%); transition: transform .65s cubic-bezier(.5, 0, .75, 0); }
+.big-goat-svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 30px 40px rgba(10, 30, 15, .35)); }
+.bg-head { transform-box: view-box; transform-origin: 120px 200px; transition: transform .6s cubic-bezier(.34, 1.4, .64, 1); }
+.goat-stage.up .bg-head { animation: head-hello 1.4s .7s ease-in-out 1; }
+.goat-stage.look .bg-head { transform: rotate(8deg) translateX(3px); animation: none; }
+.goat-stage.shy .bg-head { transform: rotate(-3deg) translateY(4px); animation: none; }
 @keyframes head-hello { 25% { transform: rotate(-8deg); } 50% { transform: rotate(6deg); } 75% { transform: rotate(-4deg); } }
 .pupils { transition: transform .45s cubic-bezier(.34, 1.4, .64, 1); }
-.peek-goat.look .pupils { transform: translate(5px, 1px); }
+.goat-stage.look .pupils { transform: translate(6px, 2px); }
 .lids { transform-box: fill-box; transform-origin: 50% 0%; transform: scaleY(0); }
-.peek-goat.up:not(.shy) .lids { animation: goat-blink 3.4s 1.2s infinite; }
-.peek-goat.shy .lids { transform: scaleY(1); transition: transform .25s ease-in; animation: none; }
+.goat-stage.up:not(.shy) .lids { animation: goat-blink 3.4s 1.4s infinite; }
 @keyframes goat-blink { 0%, 92%, 100% { transform: scaleY(0); } 95% { transform: scaleY(1); } }
-.lashes { opacity: 0; transition: opacity .2s .15s; }
-.peek-goat.shy .lashes { opacity: 1; }
 .ear { transform-box: fill-box; }
 .ear.el { transform-origin: 100% 50%; }
 .ear.er { transform-origin: 0% 50%; }
-.peek-goat.up .ear.el { animation: ear-l 2.6s ease-in-out infinite; }
-.peek-goat.up .ear.er { animation: ear-r 2.6s ease-in-out infinite; }
-.peek-goat.shy .ear.el { transform: rotate(-16deg); animation: none; transition: transform .3s; }
-.peek-goat.shy .ear.er { transform: rotate(16deg); animation: none; transition: transform .3s; }
+.goat-stage.up .ear.el { animation: ear-l 2.6s ease-in-out infinite; }
+.goat-stage.up .ear.er { animation: ear-r 2.6s ease-in-out infinite; }
 @keyframes ear-l { 0%, 70%, 100% { transform: rotate(0); } 80% { transform: rotate(10deg); } }
 @keyframes ear-r { 0%, 70%, 100% { transform: rotate(0); } 85% { transform: rotate(-10deg); } }
 .mouth { transform-box: fill-box; transform-origin: center; }
-.peek-goat.talk .mouth { animation: talk .22s ease-in-out infinite alternate; }
+.goat-stage.talk .mouth { animation: talk .22s ease-in-out infinite alternate; }
 @keyframes talk { to { transform: scaleY(2.2) translateY(1px); } }
+/* Front legs swing up from the shoulders so the hooves cover the eyes */
+.leg { transform-box: view-box; transition: transform .7s cubic-bezier(.34, 1.25, .64, 1); }
+.leg-l { transform-origin: 73px 226px; }
+.leg-r { transform-origin: 167px 226px; }
+.leg { transform: translateY(150px); }
+.goat-stage.shy .leg-l { transform: translateY(0) rotate(191deg); }
+.goat-stage.shy .leg-r { transform: translateY(0) rotate(-194deg); }
+.goat-stage.leaving .leg { transition-duration: .35s; }
 
-.goat-bubble { position: absolute; right: 62%; bottom: 82%; max-width: 230px; padding: 12px 16px; border-radius: 18px 18px 4px 18px; background: #fff; color: var(--pasture); font-family: var(--font-head); font-weight: 700; font-size: 19px; line-height: 1.2; box-shadow: 0 14px 30px -14px rgba(23, 61, 36, .45); transform-origin: 100% 100%; transform: scale(0); opacity: 0; transition: transform .35s cubic-bezier(.34, 1.56, .64, 1), opacity .2s; white-space: nowrap; }
-.goat-bubble.show { transform: scale(1); opacity: 1; }
+.goat-bubble { position: absolute; z-index: 2; left: 70%; bottom: 74%; max-width: min(320px, 80vw); padding: 14px 20px; border-radius: 20px 20px 20px 6px; background: #fff; color: var(--pasture); font-family: var(--font-head); font-weight: 700; font-size: clamp(20px, 2.4vw, 28px); line-height: 1.2; box-shadow: 0 18px 40px -16px rgba(10, 30, 15, .5); transform-origin: 0% 100%; transform: translateX(8%) scale(0); opacity: 0; transition: transform .38s cubic-bezier(.34, 1.56, .64, 1), opacity .2s; white-space: nowrap; }
+.goat-bubble.show { transform: translateX(8%) scale(1); opacity: 1; }
 /* Thought-cloud style for the "sorry" line */
-.goat-bubble.thought { white-space: normal; width: 210px; border-radius: 40px; padding: 16px 20px; font-size: 16px; text-align: center; }
-.goat-bubble.thought::before, .goat-bubble.thought::after { content: ""; position: absolute; border-radius: 50%; background: #fff; box-shadow: 0 6px 14px -8px rgba(23, 61, 36, .4); }
-.goat-bubble.thought::before { width: 18px; height: 18px; right: -2px; bottom: -14px; }
-.goat-bubble.thought::after { width: 10px; height: 10px; right: -14px; bottom: -28px; }
+.goat-bubble.thought { white-space: normal; width: min(320px, 78vw); left: auto; right: 72%; border-radius: 48px; padding: 20px 26px; font-size: clamp(18px, 2vw, 23px); text-align: center; transform-origin: 100% 100%; transform: translateX(0) scale(0); }
+.goat-bubble.thought.show { transform: translateX(0) scale(1); }
+.goat-bubble.thought::before, .goat-bubble.thought::after { content: ""; position: absolute; border-radius: 50%; background: #fff; }
+.goat-bubble.thought::before { width: 22px; height: 22px; right: 4px; bottom: -18px; }
+.goat-bubble.thought::after { width: 12px; height: 12px; right: -10px; bottom: -36px; }
+.goat-hint { position: absolute; left: 0; right: 0; bottom: 12px; text-align: center; color: #fff; font-size: 12.5px; opacity: .85; }
 
 @media (prefers-reduced-motion: reduce) {
   .farm * { animation: none !important; }
-  .peek-goat, .peek-head, .pupils, .goat-bubble { transition: none !important; }
-  .peek-goat * { animation: none !important; }
+  .big-goat, .bg-head, .pupils, .goat-bubble, .leg, .goat-veil { transition: none !important; }
+  .goat-stage * { animation: none !important; }
 }
 .login-panel { display: flex; flex-direction: column; justify-content: center; gap: 14px; padding: clamp(28px, 5vw, 64px); background: var(--paper); }
 .login-panel h1 { font-size: 30px; margin-top: 28px; }
@@ -556,9 +566,12 @@ input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--leaf); c
   .art-copy { grid-template-columns: 52px minmax(0, 1fr); align-items: center; gap: 14px; }
   .art-copy img { width: 52px; height: 52px; }
   .login-art-line { font-size: 20px; max-width: none; }
-  .peek-goat { width: 128px; right: 12px; }
-  .goat-bubble { font-size: 16px; }
-  .goat-bubble.thought { width: 170px; font-size: 14px; padding: 12px 14px; }
+  .goat-stage.look .pupils { transform: translate(0, 5px); }
+  .goat-bubble { left: 62%; bottom: 80%; }
+  .goat-bubble.thought { right: auto; left: 50%; transform-origin: 50% 100%; transform: translateX(-50%) scale(0); bottom: 92%; }
+  .goat-bubble.thought.show { transform: translateX(-50%) scale(1); }
+  .goat-bubble.thought::before { right: 46%; }
+  .goat-bubble.thought::after { right: 50%; bottom: -34px; }
   .login-panel { justify-content: flex-start; }
   .login-panel .wordmark { display: none; }
   .login-panel h1 { margin-top: 0; }

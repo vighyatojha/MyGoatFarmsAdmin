@@ -1134,52 +1134,78 @@ $('contactForm').addEventListener('submit', async (e) => {
 window.addEventListener('beforeunload', (e) => { if (settingsView.dirty || settingsView.contactDirty) { e.preventDefault(); e.returnValue = ''; } });
 
 /* =====================================================================
-   Sign-in page: the visitor goat
-   After 4 seconds a goat pops up, says hi, looks over at the sign-in
-   form, then politely closes its eyes, says it will come back later and
-   ducks away. It returns every so often while the sign-in page is open.
+   Sign-in page: the visiting goat
+   After 4 seconds the page behind blurs and a big goat rises into the
+   middle of the screen. It says hi, peeks at the sign-in form, covers
+   its eyes with its front legs, says it will come back later and goes.
+   Click anywhere (or press Esc) to send it off early. It visits again
+   now and then, but never while someone is typing their sign-in.
    ===================================================================== */
 
 const peekGoat = {
-  el: $('peekGoat'),
+  stage: $('goatStage'),
   bubble: $('goatBubble'),
   text: $('goatSays'),
   timers: [],
   running: false,
+  visible: false,
   at(ms, fn) { this.timers.push(setTimeout(fn, ms)); },
   clear() { this.timers.forEach(clearTimeout); this.timers = []; },
-  say(words, cloud = false) {
+  cls() { return this.stage.classList; },
+  say(words, thought = false) {
     this.text.textContent = words;
-    this.bubble.classList.toggle('thought', cloud);
+    this.bubble.classList.toggle('thought', thought);
     this.bubble.classList.add('show');
-    this.el.classList.add('talk');
-    this.at(Math.min(1400, 180 + words.length * 45), () => this.el.classList.remove('talk'));
+    this.cls().add('talk');
+    this.at(Math.min(1500, 200 + words.length * 45), () => this.cls().remove('talk'));
   },
   hush() { this.bubble.classList.remove('show'); },
-  visit(firstDelay) {
-    const g = this.el.classList;
-    this.at(firstDelay, () => { g.remove('leaving'); g.add('up'); });
-    this.at(firstDelay + 800, () => this.say('Hi!'));
-    this.at(firstDelay + 2600, () => { this.hush(); g.add('look'); });            // peeks at the inputs
-    this.at(firstDelay + 4300, () => { g.remove('look'); g.add('shy'); });        // closes its eyes
-    this.at(firstDelay + 4800, () => this.say("Sorry, I'll come after some time.", true));
-    this.at(firstDelay + 8200, () => { this.hush(); g.add('leaving'); g.remove('up'); });
-    this.at(firstDelay + 9000, () => { g.remove('shy', 'leaving', 'talk'); });
-    this.at(firstDelay + 9000 + 26000, () => { if (this.running) this.visit(0); });  // comes back later
+  // Someone has started entering their sign-in: don't interrupt them.
+  busyTyping() { return !!($('loginEmail').value || $('loginPassword').value); },
+  visit(delay) {
+    this.at(delay, () => {
+      if (this.busyTyping()) { this.at(15000, () => this.visit(0)); return; }   // try later
+      const g = this.cls();
+      this.visible = true;
+      g.remove('leaving');
+      g.add('on');
+      requestAnimationFrame(() => g.add('up'));
+      this.at(900, () => this.say('Hi!'));
+      this.at(2700, () => { this.hush(); g.add('look'); });                       // peeks at the sign-in form
+      this.at(4300, () => { g.remove('look'); g.add('shy'); });                   // hooves over its eyes
+      this.at(5100, () => this.say("Sorry, I'll come after some time.", true));
+      this.at(8600, () => this.leave());
+    });
+  },
+  leave() {
+    if (!this.visible) return;
+    this.clear();
+    this.visible = false;
+    this.hush();
+    const g = this.cls();
+    g.add('leaving');
+    g.remove('up', 'talk');
+    this.at(700, () => {
+      g.remove('on', 'look', 'shy', 'leaving');
+      if (this.running) this.visit(60000);                                        // comes back later
+    });
   },
   start() {
-    if (!this.el || this.running) return;
+    if (!this.stage || this.running) return;
     this.running = true;
     this.clear();
     this.visit(4000);
   },
   stop() {
     this.running = false;
+    this.visible = false;
     this.clear();
     this.hush();
-    this.el?.classList.remove('up', 'look', 'shy', 'talk', 'leaving');
+    this.stage?.classList.remove('on', 'up', 'look', 'shy', 'talk', 'leaving');
   },
 };
+peekGoat.stage?.addEventListener('click', () => peekGoat.leave());
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && peekGoat.visible) peekGoat.leave(); });
 // Pause while the tab is hidden so the goat doesn't pop up unseen.
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) peekGoat.stop();
