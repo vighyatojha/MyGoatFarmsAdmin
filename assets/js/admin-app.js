@@ -1134,6 +1134,59 @@ $('contactForm').addEventListener('submit', async (e) => {
 window.addEventListener('beforeunload', (e) => { if (settingsView.dirty || settingsView.contactDirty) { e.preventDefault(); e.returnValue = ''; } });
 
 /* =====================================================================
+   Sign-in page: the visitor goat
+   After 4 seconds a goat pops up, says hi, looks over at the sign-in
+   form, then politely closes its eyes, says it will come back later and
+   ducks away. It returns every so often while the sign-in page is open.
+   ===================================================================== */
+
+const peekGoat = {
+  el: $('peekGoat'),
+  bubble: $('goatBubble'),
+  text: $('goatSays'),
+  timers: [],
+  running: false,
+  at(ms, fn) { this.timers.push(setTimeout(fn, ms)); },
+  clear() { this.timers.forEach(clearTimeout); this.timers = []; },
+  say(words, cloud = false) {
+    this.text.textContent = words;
+    this.bubble.classList.toggle('thought', cloud);
+    this.bubble.classList.add('show');
+    this.el.classList.add('talk');
+    this.at(Math.min(1400, 180 + words.length * 45), () => this.el.classList.remove('talk'));
+  },
+  hush() { this.bubble.classList.remove('show'); },
+  visit(firstDelay) {
+    const g = this.el.classList;
+    this.at(firstDelay, () => { g.remove('leaving'); g.add('up'); });
+    this.at(firstDelay + 800, () => this.say('Hi!'));
+    this.at(firstDelay + 2600, () => { this.hush(); g.add('look'); });            // peeks at the inputs
+    this.at(firstDelay + 4300, () => { g.remove('look'); g.add('shy'); });        // closes its eyes
+    this.at(firstDelay + 4800, () => this.say("Sorry, I'll come after some time.", true));
+    this.at(firstDelay + 8200, () => { this.hush(); g.add('leaving'); g.remove('up'); });
+    this.at(firstDelay + 9000, () => { g.remove('shy', 'leaving', 'talk'); });
+    this.at(firstDelay + 9000 + 26000, () => { if (this.running) this.visit(0); });  // comes back later
+  },
+  start() {
+    if (!this.el || this.running) return;
+    this.running = true;
+    this.clear();
+    this.visit(4000);
+  },
+  stop() {
+    this.running = false;
+    this.clear();
+    this.hush();
+    this.el?.classList.remove('up', 'look', 'shy', 'talk', 'leaving');
+  },
+};
+// Pause while the tab is hidden so the goat doesn't pop up unseen.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) peekGoat.stop();
+  else if (document.body.dataset.screen === 'login') peekGoat.start();
+});
+
+/* =====================================================================
    Sign in / sign out
    ===================================================================== */
 
@@ -1192,6 +1245,7 @@ $('signOut').addEventListener('click', async () => {
 
 function showLogin(message = '') {
   document.body.dataset.screen = 'login';
+  peekGoat.start();
   document.title = 'Sign in · My Goat Farms Admin';
   $('loginError').textContent = message;
   banner('');
@@ -1206,6 +1260,7 @@ function enterApp(user) {
   banner('');
   const wasLogin = document.body.dataset.screen !== 'app';
   document.body.dataset.screen = 'app';
+  peekGoat.stop();
   startData();
   showView(routeFromHash(), { focus: wasLogin });
 }
@@ -1215,6 +1270,8 @@ function enterApp(user) {
 const slowTimer = setTimeout(() => {
   if (!store.user && document.body.dataset.screen === 'app') banner('Still checking your sign-in. If this doesn\'t finish, check your connection and reload.', 'warn');
 }, 6000);
+
+if (document.body.dataset.screen === 'login') peekGoat.start();
 
 // Show the app shell's placeholders immediately for returning admins.
 if (document.body.dataset.screen === 'app') {

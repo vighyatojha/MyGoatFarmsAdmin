@@ -147,17 +147,95 @@ input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--leaf); c
    Sign in
    ========================================================================== */
 .login { min-height: 100vh; min-height: 100dvh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 520px); }
-.login-art {
-  background: var(--pasture);
-  background-image:
-    repeating-linear-gradient(170deg, transparent 0 46px, rgba(255, 255, 255, .025) 46px 48px),
-    radial-gradient(120% 80% at 0% 100%, var(--pasture-2), transparent 60%);
-  color: var(--pasture-ink);
-  display: flex; flex-direction: column; justify-content: flex-end; gap: 28px;
-  padding: clamp(32px, 6vw, 80px);
+.login-art { position: relative; overflow: hidden; isolation: isolate; background: #d7ecc8; display: flex; flex-direction: column; justify-content: flex-start; padding: clamp(32px, 5vw, 64px); }
+.farm { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
+.art-copy { display: grid; gap: 20px; max-width: 460px; }
+.art-copy img { border-radius: 50%; background: #fff; box-shadow: 0 0 0 6px rgba(255, 255, 255, .55), 0 12px 30px -12px rgba(23, 61, 36, .4); }
+.login-art-line { font-family: var(--font-head); font-weight: 700; font-size: clamp(28px, 3.2vw, 44px); line-height: 1.08; color: var(--pasture); max-width: 15ch; }
+
+/* ---- Farm scene motion ---- */
+.cloud { animation: cloud-drift 60s linear infinite; }
+.cloud.c2 { animation-duration: 85s; animation-delay: -30s; opacity: .8; }
+.cloud.c3 { animation-duration: 110s; animation-delay: -70s; opacity: .7; }
+@keyframes cloud-drift { from { transform: translateX(-260px); } to { transform: translateX(760px); } }
+.sun-glow { animation: sun-pulse 6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes sun-pulse { 50% { transform: scale(1.08); opacity: .8; } }
+.birds { animation: birds-fly 26s linear infinite; }
+.bird { animation: flap .6s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+.bird.b2 { animation-delay: -.3s; }
+@keyframes birds-fly { from { transform: translate(-340px, 40px); } to { transform: translate(520px, -40px); } }
+@keyframes flap { to { transform: scaleY(.4); } }
+.tree { transform-box: fill-box; transform-origin: 50% 100%; animation: tree-sway 7s ease-in-out infinite; }
+.tree.t2 { animation-delay: -3s; }
+@keyframes tree-sway { 50% { transform: rotate(1.5deg); } }
+.sway { transform-box: fill-box; transform-origin: 50% 100%; animation: grass-sway 3.2s ease-in-out infinite; }
+.sway.s2 { animation-delay: -1.1s; animation-duration: 3.8s; }
+.sway.s3 { animation-delay: -2s; animation-duration: 2.9s; }
+@keyframes grass-sway { 0%, 100% { transform: skewX(0); } 50% { transform: skewX(-9deg); } }
+.flower { animation: flower-nod 4s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+.flower.f2 { animation-delay: -2s; }
+@keyframes flower-nod { 50% { transform: rotate(6deg); } }
+.butterfly { animation: butterfly-path 16s ease-in-out infinite; }
+.butterfly .wings { animation: wing 0.25s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+@keyframes wing { to { transform: scaleX(.35); } }
+@keyframes butterfly-path { 0% { transform: translate(80px, 690px); } 25% { transform: translate(220px, 640px); } 50% { transform: translate(360px, 700px); } 75% { transform: translate(250px, 660px); } 100% { transform: translate(80px, 690px); } }
+
+/* Grazing: the head dips to the grass, chews, comes back up */
+.graze-head { transform-box: fill-box; transform-origin: 90% 30%; animation: graze 6s ease-in-out infinite; }
+.sheep.s2 .graze-head { animation-delay: -2.4s; animation-duration: 7s; }
+.goat-g .graze-head { transform-origin: 80% 70%; animation-name: graze-goat; animation-delay: -1.2s; animation-duration: 5.5s; }
+.goat-g.g2 .graze-head { animation-delay: -3.6s; animation-duration: 6.5s; }
+@keyframes graze { 0%, 8% { transform: rotate(0); } 18% { transform: rotate(-40deg); } 24% { transform: rotate(-36deg); } 30% { transform: rotate(-40deg); } 36% { transform: rotate(-36deg); } 42% { transform: rotate(-40deg); } 48% { transform: rotate(-36deg); } 56% { transform: rotate(-40deg); } 66%, 100% { transform: rotate(0); } }
+@keyframes graze-goat { 0%, 6% { transform: rotate(0); } 16% { transform: rotate(-34deg) translateY(4px); } 22% { transform: rotate(-30deg) translateY(4px); } 28% { transform: rotate(-34deg) translateY(4px); } 34% { transform: rotate(-30deg) translateY(4px); } 40% { transform: rotate(-34deg) translateY(4px); } 50% { transform: rotate(-30deg) translateY(4px); } 60%, 100% { transform: rotate(0); } }
+.tail { transform-box: fill-box; transform-origin: 0% 100%; animation: wag .5s ease-in-out infinite alternate; }
+@keyframes wag { to { transform: rotate(18deg); } }
+.sheep, .goat-g { animation: breathe 3s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes breathe { 50% { transform: scaleY(1.025); } }
+
+/* ---- The visitor goat ---- */
+.peek-goat { position: absolute; right: clamp(8px, 4%, 40px); bottom: -6px; width: clamp(150px, 34%, 230px); z-index: 2; transform: translateY(105%); transition: transform .75s var(--spring, cubic-bezier(.34, 1.4, .64, 1)); pointer-events: none; }
+.peek-goat.up { transform: translateY(0); }
+.peek-goat.leaving { transition: transform .6s cubic-bezier(.5, 0, .75, 0); }
+.peek-svg { width: 100%; height: auto; overflow: visible; filter: drop-shadow(0 18px 24px rgba(23, 61, 36, .25)); }
+.peek-head { transform-box: fill-box; transform-origin: 50% 90%; transition: transform .6s cubic-bezier(.34, 1.4, .64, 1); }
+.peek-goat.up .peek-head { animation: head-hello 1.4s .6s ease-in-out 1; }
+.peek-goat.look .peek-head { transform: rotate(9deg) translateX(4px); animation: none; }
+.peek-goat.shy .peek-head { transform: rotate(-7deg) translateY(4px); }
+@keyframes head-hello { 25% { transform: rotate(-8deg); } 50% { transform: rotate(6deg); } 75% { transform: rotate(-4deg); } }
+.pupils { transition: transform .45s cubic-bezier(.34, 1.4, .64, 1); }
+.peek-goat.look .pupils { transform: translate(5px, 1px); }
+.lids { transform-box: fill-box; transform-origin: 50% 0%; transform: scaleY(0); }
+.peek-goat.up:not(.shy) .lids { animation: goat-blink 3.4s 1.2s infinite; }
+.peek-goat.shy .lids { transform: scaleY(1); transition: transform .25s ease-in; animation: none; }
+@keyframes goat-blink { 0%, 92%, 100% { transform: scaleY(0); } 95% { transform: scaleY(1); } }
+.lashes { opacity: 0; transition: opacity .2s .15s; }
+.peek-goat.shy .lashes { opacity: 1; }
+.ear { transform-box: fill-box; }
+.ear.el { transform-origin: 100% 50%; }
+.ear.er { transform-origin: 0% 50%; }
+.peek-goat.up .ear.el { animation: ear-l 2.6s ease-in-out infinite; }
+.peek-goat.up .ear.er { animation: ear-r 2.6s ease-in-out infinite; }
+.peek-goat.shy .ear.el { transform: rotate(-16deg); animation: none; transition: transform .3s; }
+.peek-goat.shy .ear.er { transform: rotate(16deg); animation: none; transition: transform .3s; }
+@keyframes ear-l { 0%, 70%, 100% { transform: rotate(0); } 80% { transform: rotate(10deg); } }
+@keyframes ear-r { 0%, 70%, 100% { transform: rotate(0); } 85% { transform: rotate(-10deg); } }
+.mouth { transform-box: fill-box; transform-origin: center; }
+.peek-goat.talk .mouth { animation: talk .22s ease-in-out infinite alternate; }
+@keyframes talk { to { transform: scaleY(2.2) translateY(1px); } }
+
+.goat-bubble { position: absolute; right: 62%; bottom: 82%; max-width: 230px; padding: 12px 16px; border-radius: 18px 18px 4px 18px; background: #fff; color: var(--pasture); font-family: var(--font-head); font-weight: 700; font-size: 19px; line-height: 1.2; box-shadow: 0 14px 30px -14px rgba(23, 61, 36, .45); transform-origin: 100% 100%; transform: scale(0); opacity: 0; transition: transform .35s cubic-bezier(.34, 1.56, .64, 1), opacity .2s; white-space: nowrap; }
+.goat-bubble.show { transform: scale(1); opacity: 1; }
+/* Thought-cloud style for the "sorry" line */
+.goat-bubble.thought { white-space: normal; width: 210px; border-radius: 40px; padding: 16px 20px; font-size: 16px; text-align: center; }
+.goat-bubble.thought::before, .goat-bubble.thought::after { content: ""; position: absolute; border-radius: 50%; background: #fff; box-shadow: 0 6px 14px -8px rgba(23, 61, 36, .4); }
+.goat-bubble.thought::before { width: 18px; height: 18px; right: -2px; bottom: -14px; }
+.goat-bubble.thought::after { width: 10px; height: 10px; right: -14px; bottom: -28px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .farm * { animation: none !important; }
+  .peek-goat, .peek-head, .pupils, .goat-bubble { transition: none !important; }
+  .peek-goat * { animation: none !important; }
 }
-.login-art img { border-radius: 50%; background: #fff; box-shadow: 0 0 0 8px rgba(255, 255, 255, .06); }
-.login-art-line { font-family: var(--font-head); font-weight: 600; font-size: clamp(28px, 3.4vw, 46px); line-height: 1.1; color: #fff; max-width: 15ch; }
 .login-panel { display: flex; flex-direction: column; justify-content: center; gap: 14px; padding: clamp(28px, 5vw, 64px); background: var(--paper); }
 .login-panel h1 { font-size: 30px; margin-top: 28px; }
 .login-panel form { display: grid; gap: 16px; margin-top: 18px; }
@@ -474,9 +552,13 @@ input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--leaf); c
   .topbar-copy { flex-basis: 0; }
   .topbar-actions { width: 100%; }
   .login { grid-template-columns: minmax(0, 1fr); }
-  .login-art { padding: 28px 24px; flex-direction: row; align-items: center; gap: 16px; }
-  .login-art img { width: 56px; height: 56px; }
+  .login-art { min-height: 300px; padding: 24px; }
+  .art-copy { grid-template-columns: 52px minmax(0, 1fr); align-items: center; gap: 14px; }
+  .art-copy img { width: 52px; height: 52px; }
   .login-art-line { font-size: 20px; max-width: none; }
+  .peek-goat { width: 128px; right: 12px; }
+  .goat-bubble { font-size: 16px; }
+  .goat-bubble.thought { width: 170px; font-size: 14px; padding: 12px 14px; }
   .login-panel { justify-content: flex-start; }
   .login-panel .wordmark { display: none; }
   .login-panel h1 { margin-top: 0; }

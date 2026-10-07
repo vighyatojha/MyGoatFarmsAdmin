@@ -36,11 +36,165 @@
   <!-- ===================== SIGN IN ===================== -->
   <section id="login" class="login" aria-labelledby="loginTitle">
     <div class="login-art" aria-hidden="true">
-      <img src="../assets/img/logo.png" alt="" width="96" height="96">
-      <p class="login-art-line">Approvals, renewals and enquiries for every farm on My Goat Farms.</p>
+      <!-- Farm scene: drawn in SVG so it costs no extra downloads -->
+      <svg class="farm" viewBox="0 0 600 800" preserveAspectRatio="xMidYMax slice" focusable="false">
+        <defs>
+          <linearGradient id="farmSky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#e9f5df"/><stop offset=".55" stop-color="#d7ecc8"/><stop offset="1" stop-color="#c3e2ae"/>
+          </linearGradient>
+          <radialGradient id="farmSun"><stop offset="0" stop-color="#fff6d2"/><stop offset=".6" stop-color="#ffe9a3" stop-opacity=".6"/><stop offset="1" stop-color="#ffe9a3" stop-opacity="0"/></radialGradient>
+          <g id="cloud"><ellipse cx="0" cy="0" rx="46" ry="18"/><ellipse cx="-24" cy="-8" rx="24" ry="17"/><ellipse cx="14" cy="-14" rx="28" ry="21"/></g>
+          <g id="tuft">
+            <path d="M0 0 C-2 -14 -6 -22 -12 -28 C-4 -22 2 -14 3 0Z"/>
+            <path d="M4 0 C4 -16 6 -26 10 -34 C10 -24 9 -12 9 0Z"/>
+            <path d="M8 0 C10 -10 14 -18 22 -22 C16 -14 13 -8 13 0Z"/>
+          </g>
+        </defs>
+
+        <rect width="600" height="800" fill="url(#farmSky)"/>
+        <circle class="sun-glow" cx="300" cy="380" r="120" fill="url(#farmSun)"/>
+        <circle cx="300" cy="380" r="40" fill="#fff4c9"/>
+
+        <g fill="#fff" opacity=".9">
+          <use href="#cloud" class="cloud c1" x="120" y="300"/>
+          <use href="#cloud" class="cloud c2" x="360" y="250"/>
+          <use href="#cloud" class="cloud c3" x="40" y="370"/>
+        </g>
+
+        <!-- birds -->
+        <g class="birds" fill="none" stroke="#5c7a58" stroke-width="2.2" stroke-linecap="round">
+          <g transform="translate(250 330)"><path class="bird" d="M0 0 q6 -6 12 0 q6 -6 12 0"/></g>
+          <g transform="translate(290 315)"><path class="bird b2" d="M0 0 q5 -5 10 0 q5 -5 10 0"/></g>
+        </g>
+
+        <!-- far hills, barn and trees -->
+        <path d="M0 470 C90 420 180 430 270 455 C370 482 470 420 600 440 L600 800 L0 800Z" fill="#a8d394"/>
+        <g transform="translate(420 405)">
+          <rect x="0" y="22" width="70" height="44" fill="#b8553e"/>
+          <path d="M-6 24 L35 -4 L76 24Z" fill="#8f3f2d"/>
+          <rect x="26" y="38" width="18" height="28" fill="#f3e6cf"/>
+          <path d="M26 38 L44 66 M44 38 L26 66" stroke="#b8553e" stroke-width="2.5"/>
+          <rect x="8" y="30" width="12" height="10" fill="#f3e6cf"/>
+        </g>
+        <g transform="translate(345 445) scale(.9)"><g class="tree"><rect x="-4" y="0" width="8" height="34" fill="#7a5a3a"/><circle cy="-8" r="26" fill="#6aa85a"/><circle cx="-14" cy="4" r="18" fill="#5e9c50"/><circle cx="16" cy="2" r="18" fill="#73b162"/></g></g>
+        <g transform="translate(545 440) scale(.8)"><g class="tree t2"><rect x="-4" y="0" width="8" height="34" fill="#7a5a3a"/><circle cy="-8" r="26" fill="#6aa85a"/><circle cx="-14" cy="4" r="18" fill="#5e9c50"/><circle cx="16" cy="2" r="18" fill="#73b162"/></g></g>
+
+        <!-- middle field with fence -->
+        <path d="M0 560 C120 520 260 530 360 548 C460 566 530 540 600 530 L600 800 L0 800Z" fill="#86c072"/>
+        <g stroke="#9b7a52" stroke-width="5" stroke-linecap="round">
+          <path d="M0 548 C120 512 260 520 360 538 C460 556 530 532 600 522" fill="none" stroke-width="4"/>
+          <path d="M0 566 C120 530 260 538 360 556 C460 574 530 550 600 540" fill="none" stroke-width="4"/>
+          <path d="M30 534v40M110 517v40M190 512v40M270 520v40M350 534v40M430 548v40M510 538v40M585 526v40"/>
+        </g>
+
+        <!-- grazing animals -->
+        <g transform="translate(120 600) scale(.95)">
+          <g class="sheep">
+            <g fill="#3a312c"><rect x="-22" y="-12" width="6" height="18" rx="3"/><rect x="-8" y="-12" width="6" height="18" rx="3"/><rect x="10" y="-12" width="6" height="18" rx="3"/><rect x="22" y="-12" width="6" height="18" rx="3"/></g>
+            <g fill="#fbf8ef"><circle cx="-18" cy="-30" r="15"/><circle cx="2" cy="-38" r="17"/><circle cx="22" cy="-30" r="15"/><circle cx="-6" cy="-20" r="15"/><circle cx="14" cy="-20" r="15"/><circle cx="32" cy="-24" r="10"/></g>
+            <g class="graze-head">
+              <ellipse cx="-36" cy="-26" rx="11" ry="14" fill="#3a312c" transform="rotate(-20 -36 -26)"/>
+              <ellipse cx="-30" cy="-38" rx="8" ry="4" fill="#3a312c" transform="rotate(-30 -30 -38)"/>
+              <circle cx="-38" cy="-29" r="2" fill="#fff"/>
+              <path class="chew" d="M-44 -16 q4 3 8 0" stroke="#fff" stroke-width="1.5" fill="none" opacity=".7"/>
+            </g>
+          </g>
+        </g>
+        <g transform="translate(330 640) scale(-1.05 1.05)">
+          <g class="sheep s2">
+            <g fill="#3a312c"><rect x="-22" y="-12" width="6" height="18" rx="3"/><rect x="-8" y="-12" width="6" height="18" rx="3"/><rect x="10" y="-12" width="6" height="18" rx="3"/><rect x="22" y="-12" width="6" height="18" rx="3"/></g>
+            <g fill="#fbf8ef"><circle cx="-18" cy="-30" r="15"/><circle cx="2" cy="-38" r="17"/><circle cx="22" cy="-30" r="15"/><circle cx="-6" cy="-20" r="15"/><circle cx="14" cy="-20" r="15"/><circle cx="32" cy="-24" r="10"/></g>
+            <g class="graze-head">
+              <ellipse cx="-36" cy="-26" rx="11" ry="14" fill="#3a312c" transform="rotate(-20 -36 -26)"/>
+              <ellipse cx="-30" cy="-38" rx="8" ry="4" fill="#3a312c" transform="rotate(-30 -30 -38)"/>
+              <circle cx="-38" cy="-29" r="2" fill="#fff"/>
+            </g>
+          </g>
+        </g>
+        <g transform="translate(400 672) scale(1.05)">
+          <g class="goat-g">
+            <g fill="#6b4a2e"><rect x="-20" y="-14" width="5" height="22" rx="2.5"/><rect x="-8" y="-14" width="5" height="22" rx="2.5"/><rect x="12" y="-14" width="5" height="22" rx="2.5"/><rect x="22" y="-14" width="5" height="22" rx="2.5"/></g>
+            <ellipse cx="4" cy="-28" rx="30" ry="17" fill="#c99a68"/>
+            <ellipse cx="10" cy="-30" rx="14" ry="10" fill="#f3e6cf"/>
+            <path class="tail" d="M32 -36 q8 -8 6 -16" stroke="#c99a68" stroke-width="6" stroke-linecap="round" fill="none"/>
+            <g class="graze-head">
+              <path d="M-26 -40 q-4 -14 4 -20" stroke="#7a5a3a" stroke-width="4" stroke-linecap="round" fill="none"/>
+              <ellipse cx="-32" cy="-30" rx="10" ry="14" fill="#f3e6cf" transform="rotate(25 -32 -30)"/>
+              <ellipse cx="-22" cy="-36" rx="8" ry="3.5" fill="#c99a68" transform="rotate(20 -22 -36)"/>
+              <circle cx="-34" cy="-32" r="2" fill="#2b2018"/>
+              <path d="M-40 -18 q2 8 -2 12" stroke="#e8dcc4" stroke-width="4" stroke-linecap="round" fill="none"/>
+            </g>
+          </g>
+        </g>
+        <!-- front meadow with swaying grass and flowers -->
+        <path d="M0 700 C140 670 300 690 420 700 C500 707 560 690 600 684 L600 800 L0 800Z" fill="#6aa85a"/>
+        <g transform="translate(200 772) scale(-1 1)">
+          <g class="goat-g g2">
+            <g fill="#3d2f24"><rect x="-20" y="-14" width="5" height="22" rx="2.5"/><rect x="-8" y="-14" width="5" height="22" rx="2.5"/><rect x="12" y="-14" width="5" height="22" rx="2.5"/><rect x="22" y="-14" width="5" height="22" rx="2.5"/></g>
+            <ellipse cx="4" cy="-28" rx="30" ry="17" fill="#4a3a2d"/>
+            <ellipse cx="-6" cy="-24" rx="12" ry="8" fill="#f3e6cf"/>
+            <path class="tail" d="M32 -36 q8 -8 6 -16" stroke="#4a3a2d" stroke-width="6" stroke-linecap="round" fill="none"/>
+            <g class="graze-head">
+              <path d="M-26 -40 q-4 -14 4 -20" stroke="#8a6a3d" stroke-width="4" stroke-linecap="round" fill="none"/>
+              <ellipse cx="-32" cy="-30" rx="10" ry="14" fill="#4a3a2d" transform="rotate(25 -32 -30)"/>
+              <ellipse cx="-22" cy="-36" rx="8" ry="3.5" fill="#3d2f24" transform="rotate(20 -22 -36)"/>
+              <circle cx="-34" cy="-32" r="2" fill="#f3e6cf"/>
+            </g>
+          </g>
+        </g>
+
+        <g fill="#4f8f45">
+          <g class="sway"><use href="#tuft" x="40" y="760"/><use href="#tuft" x="70" y="772"/></g>
+          <g class="sway s2"><use href="#tuft" x="150" y="752"/><use href="#tuft" x="186" y="770"/></g>
+          <g class="sway s3"><use href="#tuft" x="300" y="764"/><use href="#tuft" x="330" y="776"/></g>
+          <g class="sway"><use href="#tuft" x="420" y="756"/><use href="#tuft" x="452" y="774"/></g>
+          <g class="sway s2"><use href="#tuft" x="540" y="762"/><use href="#tuft" x="575" y="778"/></g>
+        </g>
+        <g>
+          <g transform="translate(110 742)"><g class="flower"><path d="M0 0v18" stroke="#4f8f45" stroke-width="2"/><circle r="5" fill="#fff"/><circle r="2" fill="#f2b632"/></g></g>
+          <g transform="translate(260 748)"><g class="flower f2"><path d="M0 0v18" stroke="#4f8f45" stroke-width="2"/><circle r="5" fill="#f6c1d0"/><circle r="2" fill="#f2b632"/></g></g>
+          <g transform="translate(390 738)"><g class="flower"><path d="M0 0v18" stroke="#4f8f45" stroke-width="2"/><circle r="5" fill="#fff"/><circle r="2" fill="#f2b632"/></g></g>
+          <g transform="translate(500 750)"><g class="flower f2"><path d="M0 0v18" stroke="#4f8f45" stroke-width="2"/><circle r="5" fill="#ffe08a"/><circle r="2" fill="#e08f2c"/></g></g>
+        </g>
+        <!-- butterfly -->
+        <g class="butterfly"><g class="wings"><ellipse cx="-5" cy="0" rx="6" ry="4" fill="#f2b632"/><ellipse cx="5" cy="0" rx="6" ry="4" fill="#f2b632"/></g><rect x="-1" y="-4" width="2" height="8" rx="1" fill="#5c4630"/></g>
+      </svg>
+
+      <div class="art-copy">
+        <img src="../assets/img/logo-192.webp" alt="" width="72" height="72">
+        <p class="login-art-line">Approvals, renewals and enquiries for every farm on My Goat Farms.</p>
+      </div>
+
+      <!-- The visitor goat: pops up, says hi, peeks at the sign-in form, then looks away -->
+      <div class="peek-goat" id="peekGoat">
+        <div class="goat-bubble" id="goatBubble"><span id="goatSays"></span></div>
+        <svg class="peek-svg" viewBox="0 0 220 230" focusable="false">
+          <ellipse cx="110" cy="236" rx="78" ry="56" fill="#efe2cb"/>
+          <g class="peek-head">
+            <path d="M88 64 C80 34 60 24 46 32" stroke="#8a6a3d" stroke-width="11" stroke-linecap="round" fill="none"/>
+            <path d="M132 64 C140 34 160 24 174 32" stroke="#8a6a3d" stroke-width="11" stroke-linecap="round" fill="none"/>
+            <g class="ear el"><ellipse cx="50" cy="104" rx="30" ry="12" fill="#e2cfae" transform="rotate(-18 50 104)"/><ellipse cx="52" cy="104" rx="18" ry="6" fill="#f2b8b0" transform="rotate(-18 52 104)"/></g>
+            <g class="ear er"><ellipse cx="170" cy="104" rx="30" ry="12" fill="#e2cfae" transform="rotate(18 170 104)"/><ellipse cx="168" cy="104" rx="18" ry="6" fill="#f2b8b0" transform="rotate(18 168 104)"/></g>
+            <ellipse cx="110" cy="118" rx="54" ry="64" fill="#f8f0e2"/>
+            <ellipse cx="110" cy="80" rx="28" ry="18" fill="#d8b48a" opacity=".55"/>
+            <ellipse cx="80" cy="140" rx="10" ry="6" fill="#f3b3a8" opacity=".55"/>
+            <ellipse cx="140" cy="140" rx="10" ry="6" fill="#f3b3a8" opacity=".55"/>
+            <g class="eyes">
+              <ellipse cx="88" cy="110" rx="12" ry="13" fill="#fff"/><ellipse cx="132" cy="110" rx="12" ry="13" fill="#fff"/>
+              <g class="pupils"><circle cx="88" cy="112" r="6.5" fill="#2b2018"/><circle cx="132" cy="112" r="6.5" fill="#2b2018"/><circle cx="90" cy="109" r="2" fill="#fff"/><circle cx="134" cy="109" r="2" fill="#fff"/></g>
+              <g class="lids"><ellipse cx="88" cy="110" rx="13" ry="14" fill="#f8f0e2"/><ellipse cx="132" cy="110" rx="13" ry="14" fill="#f8f0e2"/></g>
+              <g class="lashes" fill="none" stroke="#5c4630" stroke-width="3" stroke-linecap="round"><path d="M77 112 Q88 121 99 112"/><path d="M121 112 Q132 121 143 112"/></g>
+            </g>
+            <ellipse cx="110" cy="156" rx="28" ry="19" fill="#efd6c4"/>
+            <ellipse cx="101" cy="151" rx="3.5" ry="2.5" fill="#8f6a55"/><ellipse cx="119" cy="151" rx="3.5" ry="2.5" fill="#8f6a55"/>
+            <path class="mouth" d="M100 164 Q110 172 120 164" stroke="#8f6a55" stroke-width="3" stroke-linecap="round" fill="none"/>
+            <path d="M101 178 Q110 206 119 178Z" fill="#eadcc3"/>
+          </g>
+        </svg>
+      </div>
     </div>
     <div class="login-panel">
-      <a class="wordmark" href="../index.html"><img src="../assets/img/logo.png" alt="" width="36" height="36"><span>My Goat Farms</span></a>
+      <a class="wordmark" href="../index.html"><img src="../assets/img/logo-96.webp" alt="" width="36" height="36"><span>My Goat Farms</span></a>
       <h1 id="loginTitle">Sign in to the admin panel</h1>
       <p class="muted">Only accounts added as admins in Firebase can sign in.</p>
 
@@ -69,7 +223,7 @@
   <div id="app" class="app">
     <aside class="sidebar" id="sidebar" aria-label="Admin navigation">
       <div class="sidebar-head">
-        <a class="wordmark wordmark-light" href="#/dashboard"><img src="../assets/img/logo.png" alt="" width="34" height="34"><span>My Goat Farms</span></a>
+        <a class="wordmark wordmark-light" href="#/dashboard"><img src="../assets/img/logo-96.webp" alt="" width="34" height="34"><span>My Goat Farms</span></a>
         <button class="icon-btn sidebar-close" id="sidebarClose" type="button" aria-label="Close navigation">
           <svg viewBox="0 0 24 24" class="ico"><path d="M6 6l12 12M18 6 6 18"/></svg>
         </button>
