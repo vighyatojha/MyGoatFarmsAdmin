@@ -9,9 +9,9 @@
   <link rel="icon" type="image/png" href="../assets/img/favicon.png">
   <link rel="preload" href="../assets/fonts/Poppins-Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="../assets/fonts/Baloo2-Bold.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="modulepreload" href="../assets/js/firebase-config.js?v=20261007c">
-  <link rel="modulepreload" href="../assets/js/db.js?v=20261007c">
-  <link rel="modulepreload" href="../assets/js/validators.js?v=20261007c">
+  <link rel="modulepreload" href="../assets/js/firebase-config.js?v=20261007d">
+  <link rel="modulepreload" href="../assets/js/db.js?v=20261007d">
+  <link rel="modulepreload" href="../assets/js/validators.js?v=20261007d">
   <!-- Painted before any stylesheet or script arrives, so there is never a
        white flash: page colours and the right first screen are set here. -->
   <style>
@@ -28,7 +28,7 @@
       document.documentElement.dataset.hint = hint ? '1' : '';
     })();
   </script>
-  <link rel="stylesheet" href="../assets/css/admin-app.css?v=20261007c">
+  <link rel="stylesheet" href="../assets/css/admin-app.css?v=20261007d">
 </head>
 <body>
   <script>document.body.dataset.screen = document.documentElement.dataset.hint ? 'app' : 'login';</script>
@@ -174,6 +174,44 @@
         <p class="login-art-line">Approvals, renewals and enquiries for every farm on My Goat Farms.</p>
       </div>
 
+
+      <!-- The visiting goat: rises into the middle of the farm section over a blur
+           (the sign-in form stays sharp),
+           says hi, peeks at the sign-in form, covers its eyes with its front
+           legs and promises to come back later. Click anywhere to send it off. -->
+      <div class="goat-stage" id="goatStage" aria-hidden="true">
+        <div class="goat-veil"></div>
+        <div class="big-goat" id="bigGoat">
+          <div class="goat-bubble" id="goatBubble"><span id="goatSays"></span></div>
+          <svg class="big-goat-svg" viewBox="0 0 240 320" focusable="false">
+            <!-- body / chest -->
+            <path d="M28 330 C28 250 70 218 120 218 C170 218 212 250 212 330Z" fill="#efe2cb"/>
+            <path d="M92 222 C100 250 140 250 148 222" fill="#e4d3b6"/>
+            <g class="bg-head">
+              <path d="M98 66 C88 32 64 20 46 30" stroke="#8a6a3d" stroke-width="12" stroke-linecap="round" fill="none"/>
+              <path d="M142 66 C152 32 176 20 194 30" stroke="#8a6a3d" stroke-width="12" stroke-linecap="round" fill="none"/>
+              <g class="ear el"><ellipse cx="56" cy="108" rx="32" ry="13" fill="#e2cfae" transform="rotate(-18 56 108)"/><ellipse cx="58" cy="108" rx="19" ry="6.5" fill="#f2b8b0" transform="rotate(-18 58 108)"/></g>
+              <g class="ear er"><ellipse cx="184" cy="108" rx="32" ry="13" fill="#e2cfae" transform="rotate(18 184 108)"/><ellipse cx="182" cy="108" rx="19" ry="6.5" fill="#f2b8b0" transform="rotate(18 182 108)"/></g>
+              <ellipse cx="120" cy="122" rx="58" ry="68" fill="#f8f0e2"/>
+              <ellipse cx="120" cy="82" rx="30" ry="19" fill="#d8b48a" opacity=".55"/>
+              <ellipse cx="86" cy="146" rx="11" ry="7" fill="#f3b3a8" opacity=".6"/>
+              <ellipse cx="154" cy="146" rx="11" ry="7" fill="#f3b3a8" opacity=".6"/>
+              <g class="eyes">
+                <ellipse cx="96" cy="114" rx="13" ry="14" fill="#fff"/><ellipse cx="144" cy="114" rx="13" ry="14" fill="#fff"/>
+                <g class="pupils"><circle cx="96" cy="116" r="7" fill="#2b2018"/><circle cx="144" cy="116" r="7" fill="#2b2018"/><circle cx="98.5" cy="112.5" r="2.2" fill="#fff"/><circle cx="146.5" cy="112.5" r="2.2" fill="#fff"/></g>
+                <g class="lids"><ellipse cx="96" cy="114" rx="14" ry="15" fill="#f8f0e2"/><ellipse cx="144" cy="114" rx="14" ry="15" fill="#f8f0e2"/></g>
+              </g>
+              <ellipse cx="120" cy="162" rx="30" ry="20" fill="#efd6c4"/>
+              <ellipse cx="110" cy="157" rx="3.8" ry="2.6" fill="#8f6a55"/><ellipse cx="130" cy="157" rx="3.8" ry="2.6" fill="#8f6a55"/>
+              <path class="mouth" d="M109 171 Q120 180 131 171" stroke="#8f6a55" stroke-width="3" stroke-linecap="round" fill="none"/>
+              <path d="M110 186 Q120 214 130 186Z" fill="#eadcc3"/>
+            </g>
+            <!-- front legs: rest on the chest, then rise to cover the eyes -->
+            <g class="leg leg-l"><rect x="60" y="216" width="26" height="136" rx="13" fill="#e9dac0"/><rect x="59" y="322" width="28" height="30" rx="11" fill="#5c4630"/><path d="M73 326 v24" stroke="#3d2f24" stroke-width="2"/></g>
+            <g class="leg leg-r"><rect x="154" y="216" width="26" height="136" rx="13" fill="#e9dac0"/><rect x="153" y="322" width="28" height="30" rx="11" fill="#5c4630"/><path d="M167 326 v24" stroke="#3d2f24" stroke-width="2"/></g>
+          </svg>
+        </div>
+      </div>
     </div>
     <div class="login-panel">
       <a class="wordmark" href="../index.html"><img src="../assets/img/logo-96.webp" alt="" width="36" height="36"><span>My Goat Farms</span></a>
@@ -183,16 +221,17 @@
       <form id="loginForm" novalidate>
         <div class="field">
           <label class="field-label" for="loginEmail">Email</label>
-          <input id="loginEmail" class="input" type="email" autocomplete="username" inputmode="email" required>
+          <input id="loginEmail" class="input" type="email" autocomplete="username" inputmode="email" maxlength="254" autocapitalize="none" autocorrect="off" spellcheck="false" required>
         </div>
         <div class="field">
           <label class="field-label" for="loginPassword">Password</label>
           <div class="input-wrap">
-            <input id="loginPassword" class="input has-action" type="password" autocomplete="current-password" required>
+            <input id="loginPassword" class="input has-action" type="password" autocomplete="current-password" maxlength="128" autocapitalize="none" autocorrect="off" spellcheck="false" required>
             <button type="button" id="togglePassword" class="input-action" aria-label="Show password" aria-pressed="false">
               <svg viewBox="0 0 24 24" class="ico"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
           </div>
+          <p class="field-hint login-warn" id="passwordWarn" aria-live="polite"></p>
         </div>
         <p id="loginError" class="form-alert" role="alert"></p>
         <button id="loginBtn" class="btn btn-primary btn-block" type="submit">Sign in</button>
@@ -200,42 +239,6 @@
       <a class="quiet-link" href="../index.html">Back to the main website</a>
     </div>
 
-    <!-- The visiting goat: rises into the middle of the screen over a blur,
-         says hi, peeks at the sign-in form, covers its eyes with its front
-         legs and promises to come back later. Click anywhere to send it off. -->
-    <div class="goat-stage" id="goatStage" aria-hidden="true">
-      <div class="goat-veil"></div>
-      <div class="big-goat" id="bigGoat">
-        <div class="goat-bubble" id="goatBubble"><span id="goatSays"></span></div>
-        <svg class="big-goat-svg" viewBox="0 0 240 320" focusable="false">
-          <!-- body / chest -->
-          <path d="M28 330 C28 250 70 218 120 218 C170 218 212 250 212 330Z" fill="#efe2cb"/>
-          <path d="M92 222 C100 250 140 250 148 222" fill="#e4d3b6"/>
-          <g class="bg-head">
-            <path d="M98 66 C88 32 64 20 46 30" stroke="#8a6a3d" stroke-width="12" stroke-linecap="round" fill="none"/>
-            <path d="M142 66 C152 32 176 20 194 30" stroke="#8a6a3d" stroke-width="12" stroke-linecap="round" fill="none"/>
-            <g class="ear el"><ellipse cx="56" cy="108" rx="32" ry="13" fill="#e2cfae" transform="rotate(-18 56 108)"/><ellipse cx="58" cy="108" rx="19" ry="6.5" fill="#f2b8b0" transform="rotate(-18 58 108)"/></g>
-            <g class="ear er"><ellipse cx="184" cy="108" rx="32" ry="13" fill="#e2cfae" transform="rotate(18 184 108)"/><ellipse cx="182" cy="108" rx="19" ry="6.5" fill="#f2b8b0" transform="rotate(18 182 108)"/></g>
-            <ellipse cx="120" cy="122" rx="58" ry="68" fill="#f8f0e2"/>
-            <ellipse cx="120" cy="82" rx="30" ry="19" fill="#d8b48a" opacity=".55"/>
-            <ellipse cx="86" cy="146" rx="11" ry="7" fill="#f3b3a8" opacity=".6"/>
-            <ellipse cx="154" cy="146" rx="11" ry="7" fill="#f3b3a8" opacity=".6"/>
-            <g class="eyes">
-              <ellipse cx="96" cy="114" rx="13" ry="14" fill="#fff"/><ellipse cx="144" cy="114" rx="13" ry="14" fill="#fff"/>
-              <g class="pupils"><circle cx="96" cy="116" r="7" fill="#2b2018"/><circle cx="144" cy="116" r="7" fill="#2b2018"/><circle cx="98.5" cy="112.5" r="2.2" fill="#fff"/><circle cx="146.5" cy="112.5" r="2.2" fill="#fff"/></g>
-              <g class="lids"><ellipse cx="96" cy="114" rx="14" ry="15" fill="#f8f0e2"/><ellipse cx="144" cy="114" rx="14" ry="15" fill="#f8f0e2"/></g>
-            </g>
-            <ellipse cx="120" cy="162" rx="30" ry="20" fill="#efd6c4"/>
-            <ellipse cx="110" cy="157" rx="3.8" ry="2.6" fill="#8f6a55"/><ellipse cx="130" cy="157" rx="3.8" ry="2.6" fill="#8f6a55"/>
-            <path class="mouth" d="M109 171 Q120 180 131 171" stroke="#8f6a55" stroke-width="3" stroke-linecap="round" fill="none"/>
-            <path d="M110 186 Q120 214 130 186Z" fill="#eadcc3"/>
-          </g>
-          <!-- front legs: rest on the chest, then rise to cover the eyes -->
-          <g class="leg leg-l"><rect x="60" y="216" width="26" height="136" rx="13" fill="#e9dac0"/><rect x="59" y="322" width="28" height="30" rx="11" fill="#5c4630"/><path d="M73 326 v24" stroke="#3d2f24" stroke-width="2"/></g>
-          <g class="leg leg-r"><rect x="154" y="216" width="26" height="136" rx="13" fill="#e9dac0"/><rect x="153" y="322" width="28" height="30" rx="11" fill="#5c4630"/><path d="M167 326 v24" stroke="#3d2f24" stroke-width="2"/></g>
-        </svg>
-      </div>
-    </div>
   </section>
 
   <!-- ===================== APP ===================== -->
@@ -457,6 +460,6 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script type="module" src="../assets/js/admin-app.js?v=20261007c"></script>
+  <script type="module" src="../assets/js/admin-app.js?v=20261007d"></script>
 </body>
 </html>

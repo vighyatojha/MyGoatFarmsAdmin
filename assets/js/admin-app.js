@@ -3,7 +3,7 @@
 // swaps which <section class="view"> is visible, so nothing reloads and the
 // data is already there when a section opens.
 
-import { auth } from './firebase-config.js?v=20261007c';
+import { auth } from './firebase-config.js?v=20261007d';
 import {
   onAuthStateChanged, signInWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence,
 } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js';
@@ -12,8 +12,8 @@ import {
   approveFarm, renewFarm, rejectFarm, blockFarm, unblockFarm,
   markEnquiriesRead, markEnquiriesNew, deleteEnquiries,
   getPlans, savePlans, getAdminContact, saveAdminContact, DEFAULT_PLANS, localKeyOf,
-} from './db.js?v=20261007c';
-import { bindForm, schemas, check, setFieldError, localDateKey, LIMITS } from './validators.js?v=20261007c';
+} from './db.js?v=20261007d';
+import { bindForm, schemas, check, setFieldError, localDateKey, LIMITS } from './validators.js?v=20261007d';
 
 /* =====================================================================
    Small helpers
@@ -1233,29 +1233,117 @@ function loginMessage(code) {
     case 'auth/user-disabled': return 'This account has been disabled in Firebase.';
     case 'auth/too-many-requests': return 'Too many attempts. Wait a few minutes, then try again.';
     case 'auth/network-request-failed': return "Couldn't reach Firebase. Check your connection.";
+    case 'timeout': return 'Signing in is taking too long. Check your connection and try again.';
     case 'not-admin': return "This account isn't an admin. Ask an existing admin to add it in Firebase.";
     default: return 'Sign-in failed. Try again.';
   }
 }
 
+// ---- Sign-in safeguards -------------------------------------------------
+// Checks before anything is sent: email format, password length, the
+// connection. After 5 wrong attempts the form pauses (30 s, doubling each
+// time) on top of Firebase's own limits, and the pause survives a reload.
+const LOCK_KEY = 'mgf.admin.lock';
+const MAX_TRIES = 5;
+const SIGN_IN_TIMEOUT_MS = 20000;
+const lockState = () => { try { return JSON.parse(storage.get(LOCK_KEY) || '{}'); } catch { return {}; } };
+const saveLock = (st) => storage.set(LOCK_KEY, JSON.stringify(st));
+let lockTimer = 0;
+
+function lockedFor() { return Math.max(0, (lockState().until || 0) - Date.now()); }
+
+function showLockCountdown() {
+  clearInterval(lockTimer);
+  const tick = () => {
+    const ms = lockedFor();
+    const btn = $('loginBtn');
+    if (!ms) {
+      clearInterval(lockTimer);
+      btn.disabled = false;
+      btn.textContent = 'Sign in';
+      if ($('loginError').dataset.lock) { $('loginError').textContent = ''; delete $('loginError').dataset.lock; }
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = `Try again in ${Math.ceil(ms / 1000)}s`;
+    $('loginError').dataset.lock = '1';
+    $('loginError').textContent = 'Too many wrong attempts. Wait a moment before trying again.';
+  };
+  tick();
+  lockTimer = setInterval(tick, 1000);
+}
+
+function recordFailure() {
+  const st = lockState();
+  st.fails = (st.fails || 0) + 1;
+  if (st.fails >= MAX_TRIES) {
+    st.rounds = (st.rounds || 0) + 1;
+    st.until = Date.now() + Math.min(15 * 60000, 30000 * 2 ** (st.rounds - 1));
+    st.fails = 0;
+  }
+  saveLock(st);
+  if (st.until > Date.now()) showLockCountdown();
+  return MAX_TRIES - st.fails;
+}
+const clearFailures = () => storage.del(LOCK_KEY);
+if (lockedFor()) showLockCountdown();
+
+// Caps Lock and stray-space warnings on the password (they don't block).
+function passwordWarnings(e) {
+  const pw = $('loginPassword').value;
+  const notes = [];
+  if (e && typeof e.getModifierState === 'function' && e.getModifierState('CapsLock')) notes.push('Caps Lock is on.');
+  if (pw && pw !== pw.trim()) notes.push('Your password starts or ends with a space.');
+  $('passwordWarn').textContent = notes.join(' ');
+}
+['keydown', 'keyup', 'input'].forEach((ev) => $('loginPassword').addEventListener(ev, passwordWarnings));
+$('loginPassword').addEventListener('blur', () => { $('passwordWarn').textContent = ''; });
+// Normalise the email as it's left: no stray spaces, lower case.
+$('loginEmail').addEventListener('blur', () => { $('loginEmail').value = $('loginEmail').value.trim().toLowerCase(); });
+
 let signingIn = false;
 $('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   $('loginError').textContent = '';
+  if (lockedFor()) { showLockCountdown(); return; }
+  $('loginEmail').value = $('loginEmail').value.trim().toLowerCase();
   if (!loginValidator.validate()) return;
+  if (navigator.onLine === false) { $('loginError').textContent = "You're offline. Connect to the internet, then sign in."; return; }
+
   signingIn = true;
+  peekGoat.stop();
   await busy($('loginBtn'), 'Signing in…', async () => {
     try {
       await setPersistence(auth, browserLocalPersistence);
       const { email, password } = loginValidator.values();
-      const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+      const cred = await Promise.race([
+        signInWithEmailAndPassword(auth, email, password),
+        new Promise((_, reject) => setTimeout(() => reject({ code: 'timeout' }), SIGN_IN_TIMEOUT_MS)),
+      ]);
       if (!(await isAdminUid(cred.user.uid))) { await signOut(auth); throw { code: 'not-admin' }; }
+      clearFailures();
       $('loginPassword').value = '';
+      $('passwordWarn').textContent = '';
       enterApp(cred.user);
     } catch (err) {
-      $('loginError').textContent = loginMessage(err.code);
-    } finally { signingIn = false; }
+      const code = err?.code;
+      let msg = loginMessage(code);
+      if (['auth/invalid-credential', 'auth/wrong-password', 'auth/user-not-found', 'auth/invalid-email'].includes(code)) {
+        const left = recordFailure();
+        if (!lockedFor()) msg += left <= 2 ? ` ${left} ${left === 1 ? 'try' : 'tries'} left before a short pause.` : '';
+        $('loginPassword').select();
+        $('loginPassword').focus();
+      } else if (code === 'auth/too-many-requests') {
+        const st = lockState(); st.until = Date.now() + 60000; saveLock(st); showLockCountdown();
+      }
+      if (!lockedFor()) $('loginError').textContent = msg;
+    } finally {
+      signingIn = false;
+    }
   });
+  // After the button is restored: keep it paused if locked, and let the goat visit again.
+  if (lockedFor()) showLockCountdown();
+  else if (document.body.dataset.screen === 'login') peekGoat.start();
 });
 
 $('signOut').addEventListener('click', async () => {

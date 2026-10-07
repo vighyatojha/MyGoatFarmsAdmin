@@ -15,7 +15,10 @@ export const LIMITS = {
   maxDays: 3650,        // 10 years
 };
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+// name@domain.tld — letters, digits and . _ % + - before the @; a domain
+// made of labels (no leading/trailing hyphen) and a 2+ letter ending; no
+// spaces and no ".." anywhere.
+const EMAIL_RE = /^(?!.*\.\.)[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,}$/;
 
 // Indian mobile numbers: optional +91 / 91 / 0 prefix, then 10 digits
 // starting with 6–9. Spaces, dashes and brackets are ignored.
@@ -31,7 +34,16 @@ export const rules = {
   required: (label) => (v) => (String(v ?? '').trim() ? '' : `Enter ${label}.`),
   maxLen: (n, label) => (v) => (String(v ?? '').trim().length <= n ? '' : `${label} must be ${n} characters or fewer.`),
   minLen: (n, label) => (v) => (!String(v ?? '').trim() || String(v).trim().length >= n ? '' : `${label} must be at least ${n} characters.`),
-  email: () => (v) => (!String(v ?? '').trim() || EMAIL_RE.test(String(v).trim()) ? '' : 'Enter a valid email address, like name@example.com.'),
+  email: () => (v) => {
+    const s = String(v ?? '').trim();
+    if (!s) return '';
+    if (/\s/.test(s)) return "An email address can't contain spaces.";
+    if ((s.match(/@/g) || []).length !== 1) return 'An email address needs exactly one @.';
+    const [local] = s.split('@');
+    if (local.length > 64 || local.startsWith('.') || local.endsWith('.')) return 'Check the part before the @.';
+    return EMAIL_RE.test(s) ? '' : 'Enter a valid email address, like name@example.com.';
+  },
+  noEdgeSpaces: (label) => (v) => (String(v ?? '') !== String(v ?? '').trim() ? `${label} starts or ends with a space. Remove it if that wasn't intended.` : ''),
   phone: () => (v) => {
     if (!String(v ?? '').trim()) return '';
     return /^[6-9]\d{9}$/.test(normalizePhone(v)) ? '' : 'Enter a 10-digit Indian mobile number, like 98765 43210.';
@@ -91,8 +103,10 @@ export const schemas = {
     message: [rules.required('a message'), rules.minLen(10, 'Message'), rules.maxLen(LIMITS.message, 'Message')],
   },
   login: {
-    email: [rules.required('your email'), rules.email()],
-    password: [rules.required('your password')],
+    email: [rules.required('your email'), rules.maxLen(LIMITS.email, 'Email'), rules.email()],
+    // Firebase accounts need at least 6 characters; anything shorter can't
+    // be a real password, so don't spend a sign-in attempt on it.
+    password: [rules.required('your password'), rules.minLen(6, 'Password'), rules.maxLen(128, 'Password')],
   },
   subscription: {
     plan: [rules.required('a plan'), rules.maxLen(LIMITS.planName, 'Plan name')],

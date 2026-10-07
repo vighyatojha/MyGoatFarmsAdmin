@@ -131,6 +131,8 @@ textarea.input { resize: vertical; min-height: 96px; line-height: 1.5; }
 }
 .input-action:hover { color: var(--leaf); background: var(--leaf-wash); }
 .form-alert { min-height: 20px; color: var(--clay); font-size: 13px; }
+.login-warn { text-align: left !important; color: #8a5d05; }
+.login-warn:empty { display: none; }
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .form-grid .span-2, .form-grid .form-actions { grid-column: 1 / -1; }
 .form-actions { display: flex; justify-content: flex-end; }
@@ -195,11 +197,11 @@ input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--leaf); c
 @keyframes breathe { 50% { transform: scaleY(1.025); } }
 
 /* ---- The visiting goat (centre stage) ---- */
-.goat-stage { position: fixed; inset: 0; z-index: 90; display: grid; place-items: end center; pointer-events: none; visibility: hidden; transition: visibility 0s .7s; }
+.goat-stage { position: absolute; inset: 0; z-index: 5; display: grid; place-items: end center; pointer-events: none; visibility: hidden; transition: visibility 0s .7s; }
 .goat-stage.on { pointer-events: auto; visibility: visible; transition: visibility 0s; cursor: pointer; }
 .goat-veil { position: absolute; inset: 0; background: rgba(23, 61, 36, .28); backdrop-filter: blur(9px) saturate(1.1); -webkit-backdrop-filter: blur(9px) saturate(1.1); opacity: 0; transition: opacity .6s ease; }
 .goat-stage.on .goat-veil { opacity: 1; }
-.big-goat { position: relative; width: min(660px, 94vw, 82vh); transform: translateY(105%); transition: transform .9s cubic-bezier(.34, 1.3, .64, 1); }
+.big-goat { position: relative; width: min(560px, 82%, 66vh); transform: translateY(105%); transition: transform .9s cubic-bezier(.34, 1.3, .64, 1); }
 .goat-stage.up .big-goat { transform: translateY(0); }
 .goat-stage.leaving .big-goat { transform: translateY(105%); transition: transform .65s cubic-bezier(.5, 0, .75, 0); }
 .big-goat-svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 30px 40px rgba(10, 30, 15, .35)); }
@@ -568,6 +570,10 @@ input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--leaf); c
   .art-copy img { width: 48px; height: 48px; }
   .login-art-line { font-size: 16px; }
   .goat-stage.look .pupils { transform: translate(0, 5px); }
+  .login-art { min-height: 340px; }
+  .big-goat { width: min(210px, 56%); }
+  .goat-bubble { font-size: 17px; padding: 10px 14px; }
+  .goat-bubble.thought { width: min(230px, 70vw); font-size: 14px; padding: 12px 16px; }
   .goat-bubble { left: 62%; bottom: 80%; }
   .goat-bubble.thought { right: auto; left: 50%; transform-origin: 50% 100%; transform: translateX(-50%) scale(0); bottom: 92%; }
   .goat-bubble.thought.show { transform: translateX(-50%) scale(1); }
