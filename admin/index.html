@@ -87,14 +87,6 @@
           <svg viewBox="0 0 24 24" class="ico"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
           <span>Subscriptions</span><b class="nav-count warn" data-count="expiring" hidden></b>
         </a>
-        <a class="nav-link" href="#/payments" data-view="payments">
-          <svg viewBox="0 0 24 24" class="ico"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg>
-          <span>Payments</span>
-        </a>
-        <a class="nav-link" href="#/earnings" data-view="earnings">
-          <svg viewBox="0 0 24 24" class="ico"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
-          <span>Earnings</span>
-        </a>
         <a class="nav-link" href="#/enquiries" data-view="enquiries">
           <svg viewBox="0 0 24 24" class="ico"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
           <span>Enquiries</span><b class="nav-count" data-count="newEnquiries" hidden></b>
@@ -163,6 +155,12 @@
         <div class="list" id="farmList" aria-live="polite"></div>
       </section>
 
+      <!-- FARM DETAIL -->
+      <section class="view" data-view="farm" hidden>
+        <a class="back-link" href="#/farms"><svg viewBox="0 0 24 24" class="ico"><path d="M15 18l-6-6 6-6"/></svg>All farms</a>
+        <div id="farmDetail" aria-live="polite"></div>
+      </section>
+
       <!-- SUBSCRIPTIONS -->
       <section class="view" data-view="subscriptions" hidden>
         <div class="toolbar">
@@ -173,34 +171,6 @@
           <thead><tr><th>Farm</th><th>Plan</th><th>Started</th><th>Expires</th><th class="w-runway">Time left</th><th><span class="sr-only">Actions</span></th></tr></thead>
           <tbody id="subTable"></tbody>
         </table></div>
-      </section>
-
-      <!-- PAYMENTS -->
-      <section class="view" data-view="payments" hidden>
-        <div class="kpis compact" id="payKpis"></div>
-        <div class="toolbar">
-          <label class="search"><svg viewBox="0 0 24 24" class="ico"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="paySearch" type="search" placeholder="Search farm, plan or reference" aria-label="Search payments"></label>
-          <div class="chips" id="payChips" role="group" aria-label="Filter by payment status"></div>
-        </div>
-        <div class="table-wrap"><table class="table">
-          <thead><tr><th>Farm</th><th>Plan</th><th class="num">Amount</th><th>Type</th><th>Paid on</th><th>Reference</th><th>Status</th></tr></thead>
-          <tbody id="payTable"></tbody>
-        </table></div>
-      </section>
-
-      <!-- EARNINGS -->
-      <section class="view" data-view="earnings" hidden>
-        <div class="kpis" id="earnKpis"></div>
-        <div class="earn-grid">
-          <article class="panel">
-            <header class="panel-head"><h2>Last 12 months</h2><p class="muted">Paid subscriptions, by the month they were paid.</p></header>
-            <div class="columns" id="earnMonths"></div>
-          </article>
-          <article class="panel">
-            <header class="panel-head"><h2>By plan</h2><p class="muted">All-time paid amount for each plan.</p></header>
-            <div class="bars" id="earnPlans"></div>
-          </article>
-        </div>
       </section>
 
       <!-- ENQUIRIES -->
@@ -248,13 +218,30 @@
           <div class="panel-foot"><span class="field-hint" id="planHint"></span><button class="btn btn-primary" id="savePlans" type="button">Save plans</button></div>
         </article>
         <article class="panel">
-          <header class="panel-head"><h2>Support contact</h2><p class="muted">Shown in the app to farmers who are pending, rejected or blocked.</p></header>
-          <form id="contactForm" class="form-grid" novalidate>
-            <div class="field"><label class="field-label" for="contactName">Name</label><input class="input" id="contactName" maxlength="100" autocomplete="organization"></div>
-            <div class="field"><label class="field-label" for="contactEmail">Email</label><input class="input" id="contactEmail" type="email" maxlength="254" required></div>
-            <div class="field"><label class="field-label" for="contactPhone">Phone</label><input class="input" id="contactPhone" type="tel" maxlength="20" inputmode="tel" placeholder="98765 43210"></div>
-            <div class="form-actions"><button class="btn btn-primary" id="saveContact" type="submit">Save contact</button></div>
-          </form>
+          <header class="panel-head"><h2>Support contact</h2><p class="muted">Farmers see these details in the app while their farm is waiting for approval, rejected or blocked.</p></header>
+          <div class="contact-layout">
+            <form id="contactForm" class="contact-form" novalidate>
+              <div class="field"><label class="field-label" for="contactName">Admin name</label><input class="input" id="contactName" maxlength="100" autocomplete="name" required></div>
+              <div class="field"><label class="field-label" for="contactMobile">Mobile number</label><input class="input" id="contactMobile" type="tel" maxlength="20" inputmode="tel" autocomplete="tel" placeholder="98765 43210" required><p class="field-hint">Shown first, with Call and WhatsApp buttons.</p></div>
+              <fieldset class="multi" id="contactPhones">
+                <legend class="field-label">Other phone numbers</legend>
+                <div class="multi-rows" data-list="phones"></div>
+                <button class="btn btn-quiet btn-sm" type="button" data-add="phones">Add phone number</button>
+              </fieldset>
+              <fieldset class="multi" id="contactEmails">
+                <legend class="field-label">Emails</legend>
+                <div class="multi-rows" data-list="emails"></div>
+                <button class="btn btn-quiet btn-sm" type="button" data-add="emails">Add email</button>
+              </fieldset>
+              <div class="form-actions"><span class="field-hint" id="contactHint"></span><button class="btn btn-primary" id="saveContact" type="submit">Save contact</button></div>
+            </form>
+            <aside class="phone-preview" aria-label="Preview of the app's approval screen">
+              <p class="preview-label">Preview in the app</p>
+              <div class="phone-frame">
+                <div class="phone-screen" id="contactPreview"></div>
+              </div>
+            </aside>
+          </div>
         </article>
         <article class="panel">
           <header class="panel-head"><h2>Your account</h2><p class="muted">Admins are added and removed in the Firebase console.</p></header>
@@ -271,10 +258,6 @@
       <div class="dialog-body form-grid">
         <div class="field span-2"><label class="field-label" for="subPlan">Plan</label><select class="select" id="subPlan" required></select></div>
         <div class="field"><label class="field-label" for="subDuration">Duration (days)</label><input class="input" id="subDuration" type="number" min="1" max="3650" step="1" inputmode="numeric" required></div>
-        <div class="field"><label class="field-label" for="subAmount">Amount (₹)</label><input class="input" id="subAmount" type="number" min="0" max="1000000" step="1" inputmode="numeric" required></div>
-        <div class="field"><label class="field-label" for="subPayStatus">Payment status</label><select class="select" id="subPayStatus"><option>Paid</option><option>Pending</option><option>Failed</option><option>Refunded</option></select></div>
-        <div class="field"><label class="field-label" for="subPayDate">Payment date</label><input class="input" id="subPayDate" type="date"></div>
-        <div class="field span-2"><label class="field-label" for="subPayRef">Payment reference (optional)</label><input class="input" id="subPayRef" maxlength="120" placeholder="UPI / UTR / receipt number"></div>
         <p class="span-2 expiry-preview" id="subPreview"></p>
       </div>
       <footer class="dialog-foot"><button class="btn btn-quiet" type="button" data-close>Cancel</button><button class="btn btn-primary" type="submit" id="subSave">Approve farm</button></footer>
@@ -289,12 +272,6 @@
       </div>
       <footer class="dialog-foot"><button class="btn btn-quiet" type="button" data-close>Cancel</button><button class="btn btn-danger" type="submit" id="reasonSave">Block farm</button></footer>
     </form>
-  </dialog>
-
-  <dialog class="dialog dialog-wide" id="farmDialog" aria-labelledby="farmTitle">
-    <header class="dialog-head"><div><h2 id="farmTitle">Farm</h2><p class="muted" id="farmSub"></p></div><button class="icon-btn" type="button" data-close aria-label="Close"><svg viewBox="0 0 24 24" class="ico"><path d="M6 6l12 12M18 6 6 18"/></svg></button></header>
-    <div class="dialog-body" id="farmBody"></div>
-    <footer class="dialog-foot" id="farmFoot"></footer>
   </dialog>
 
   <dialog class="dialog" id="confirmDialog" aria-labelledby="confirmTitle">

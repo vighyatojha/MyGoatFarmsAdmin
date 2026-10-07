@@ -67,9 +67,9 @@ rules_version = '2';
 //      range-checked (same reason as Palai balances below).
 //
 //   H. ADMIN WEBSITE WRITES ARE VALIDATED. subscriptionInfo written by
-//      the admin, subscription payments, enquiries, plans and the
-//      support contact are shape-checked (admin website only — no app
-//      rule changed).
+//      the admin, enquiries, plans and the support contact (name,
+//      mobile, up to 5 more phones and 1–5 emails) are shape-checked.
+//      Admin website only — no app rule changed.
 //
 // Everything else (Palai, stock, bills, finance transactions,
 // mobileIndex create, counters/farms) is unchanged.
@@ -785,13 +785,18 @@ service cloud.firestore {
     match /config/{docId} {
       allow get: if isSignedIn();
       allow list: if false;
-      // The app only reads config/adminContact; the admin website writes it.
+      // The app only reads config/adminContact (approval screen); the
+      // admin website writes it. `phone` / `email` mirror the main mobile
+      // and first email for app versions that only read those two keys.
       allow create, update: if isAdmin()
         && (docId != 'adminContact'
-            || (request.resource.data.keys().hasOnly(['name', 'email', 'phone', 'updatedAt'])
+            || (request.resource.data.keys().hasOnly(['name', 'mobile', 'phones', 'emails', 'phone', 'email', 'updatedAt'])
+                && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100
+                && request.resource.data.mobile is string && request.resource.data.mobile.size() > 0 && request.resource.data.mobile.size() <= 20
+                && request.resource.data.phones is list && request.resource.data.phones.size() <= 5
+                && request.resource.data.emails is list && request.resource.data.emails.size() >= 1 && request.resource.data.emails.size() <= 5
                 && request.resource.data.email is string
                 && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+[.][^@\\s]+$')
-                && request.resource.data.name is string && request.resource.data.name.size() <= 100
                 && request.resource.data.phone is string && request.resource.data.phone.size() <= 20));
       allow delete: if false;
     }

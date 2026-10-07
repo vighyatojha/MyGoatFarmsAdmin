@@ -1,8 +1,9 @@
 import { db } from './firebase-config.js';
 import {
   collection, doc, getDoc, getDocs, addDoc, setDoc, writeBatch, onSnapshot,
+  query, where, getCountFromServer,
 } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js';
-import { assertValid, schemas, normalizePhone, localDateKey, SUBSCRIPTION_STATUSES } from './validators.js';
+import { assertValid, schemas, normalizePhone, check, rules, localDateKey } from './validators.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const BATCH_LIMIT = 450; // Firestore allows 500 writes per batch
@@ -47,7 +48,6 @@ export function localKeyOf(v) {
    ============================================================== */
 
 const farmsCol = collection(db, 'farms');
-const subscriptionPaymentsCol = collection(db, 'subscriptionPayments');
 const byName = (a, b) => (a.farmName || a.id).localeCompare(b.farmName || b.id, 'en', { sensitivity: 'base' });
 
 function toPublicFarm(snap) {
@@ -75,8 +75,15 @@ function toPublicFarm(snap) {
     createdAt: toMillis(d.createdAt),
     status,
     rawStatus,
-    subscription: info.plan ? { plan: str(info.plan), durationDays: Number(info.durationDays) || 0, amount: Number(info.amount) || 0 } : null,
-    payment: info.paymentStatus ? { status: str(info.paymentStatus), date: info.paymentDate, reference: str(info.paymentReference) } : null,
+    subscription: info.plan ? { plan: str(info.plan), durationDays: Number(info.durationDays) || 0 } : null,
+    preferredLanguage: str(d.preferredLanguage || 'en'),
+    updatedAt: toMillis(d.updatedAt),
+    hasPhoto: !!d.profileImage,
+    business: d.billSettings && typeof d.billSettings === 'object' ? {
+      name: str(d.billSettings.businessName || d.billSettings.farmName || d.billSettings.name),
+      phone: str(d.billSettings.phone || d.billSettings.mobileNumber),
+      address: str(d.billSettings.address),
+    } : null,
     approvalDate: toMillis(info.approvalDate),
     startDate: toMillis(info.startDate),
     renewalDate: toMillis(info.renewalDate),
@@ -90,6 +97,7 @@ function toPublicFarm(snap) {
     },
     rejection: info.rejection ? { reason: str(info.rejection.reason), rejectedAt: toMillis(info.rejection.rejectedAt), rejectedBy: str(info.rejection.rejectedBy) } : null,
     approvedBy: str(info.approvedBy),
+    renewedBy: str(info.renewedBy),
     // Most recent thing that happened to this farm, for the activity feed.
     lastActivity: Math.max(
       toMillis(d.createdAt) || 0, toMillis(info.approvalDate) || 0, toMillis(info.renewalDate) || 0,
@@ -107,31 +115,47 @@ export async function listFarms() {
   return snap.docs.map(toPublicFarm).sort(byName);
 }
 
-/* ---- Operational counts (partners / goats), read per farm on demand ---- */
+/* ---- Farm numbers (partners / goats) ----------------------------------
+   Counts use Firestore count queries, which cost one read per 1,000
+   documents instead of downloading every goat (goat docs carry photos). */
 
-export async function getFarmOperationalStats(farmId) {
-  const sub = (...p) => collection(db, 'farms', farmId, ...p);
-  const [partnerSnap, customerSnap, tradingSnap, ownSnap] = await Promise.all([
-    getDocs(sub('partners')),
-    getDocs(sub('palaiCustomers')),
-    getDocs(sub('tradingGoats')),
-    getDocs(sub('ownFarmGoats')).catch(() => null), // optional module
+export const TRADING_STATUSES = ['Available', 'Own Palai', 'Booked', 'Wait on Delivery', 'In Customer Palai', 'Sold', 'Dead'];
+const TRADING_GONE = ['Sold', 'Dead'];
+
+const countOf = async (ref) => (await getCountFromServer(ref)).data().count;
+const farmCol = (farmId, ...p) => collection(db, 'farms', farmId, ...p);
+const isActivePartner = (data) => str(data?.status || 'active').toLowerCase() === 'active';
+
+async function palaiCounts(farmId, customerId) {
+  const goats = farmCol(farmId, 'palaiCustomers', customerId, 'goats');
+  const [total, checkedOut] = await Promise.all([
+    countOf(goats),
+    countOf(query(goats, where('isCheckedOut', '==', true))),
   ]);
+  return { total, checkedOut, active: Math.max(0, total - checkedOut) };
+}
 
-  // Same rule as firestore.rules isPartner(): only 'active' partners (or
-  // old partner docs with no status) have access to the farm.
-  const partners = partnerSnap.docs.filter((s) => str(s.data()?.status || 'active').toLowerCase() === 'active').length;
-
-  // Count goats that are not checked out. Goats saved before the
-  // isCheckedOut field existed have no value at all; those still count.
-  let palaiGoats = 0;
-  await Promise.all(customerSnap.docs.map(async (c) => {
-    const goats = await getDocs(sub('palaiCustomers', c.id, 'goats'));
-    palaiGoats += goats.docs.filter((g) => g.data()?.isCheckedOut !== true).length;
-  }));
-
-  const ownGoats = ownSnap ? ownSnap.size : 0;
-  return { partners, palaiGoats, tradingGoats: tradingSnap.size, ownGoats, totalGoats: palaiGoats + tradingSnap.size + ownGoats };
+/** Light numbers for the farm list. */
+export async function getFarmOperationalStats(farmId) {
+  const trading = farmCol(farmId, 'tradingGoats');
+  const [partnerSnap, customerSnap, tradingTotal, tradingGone, ownGoats] = await Promise.all([
+    getDocs(farmCol(farmId, 'partners')),
+    getDocs(farmCol(farmId, 'palaiCustomers')),
+    countOf(trading),
+    countOf(query(trading, where('currentStatus', 'in', TRADING_GONE))),
+    countOf(farmCol(farmId, 'ownFarmGoats')).catch(() => 0),
+  ]);
+  const palai = await Promise.all(customerSnap.docs.map((c) => palaiCounts(farmId, c.id)));
+  const palaiGoats = palai.reduce((n, p) => n + p.active, 0);
+  const tradingGoats = Math.max(0, tradingTotal - tradingGone);
+  return {
+    partners: partnerSnap.docs.filter((p) => isActivePartner(p.data())).length,
+    palaiCustomers: customerSnap.size,
+    palaiGoats,
+    tradingGoats,
+    ownGoats,
+    totalGoats: palaiGoats + tradingGoats + ownGoats,
+  };
 }
 
 /** Loads counts for many farms, at most `concurrency` at a time. */
@@ -141,25 +165,106 @@ export async function loadFarmStats(farmIds, onEach, concurrency = 4) {
     while (next < farmIds.length) {
       const id = farmIds[next++];
       try { onEach(id, await getFarmOperationalStats(id)); }
-      catch (error) { onEach(id, { error: true, errorMessage: error?.message || 'Counts unavailable' }); }
+      catch (error) { console.error('Farm counts failed for', id, error); onEach(id, { error: true, errorMessage: error?.message || 'Counts unavailable' }); }
     }
   };
   await Promise.all(Array.from({ length: Math.min(concurrency, farmIds.length) }, worker));
 }
 
+const PERMISSION_GROUPS = {
+  Palai: ['palaiView', 'palaiCreate', 'palaiUpdate', 'palaiDelete'],
+  Customers: ['customersView', 'customersCreate', 'customersUpdate', 'customersDelete'],
+  Stock: ['stockView', 'stockCreate', 'stockUpdate', 'stockDelete'],
+  Trading: ['tradingView', 'tradingPurchaseCreate', 'tradingSell', 'tradingSupplierPayment', 'tradingReceive', 'tradingManageStock'],
+  Finance: ['financeView', 'financeExpenseCreate', 'financeExpenseEdit', 'financeExpenseVoid', 'financeRevenueCreate', 'financeRevenueEdit', 'financeRevenueVoid', 'financeLedgerView', 'financeReportsView'],
+  Reports: ['reportsView'],
+  Profile: ['profileView'],
+};
+
+function partnerAccess(perms) {
+  const p = perms && typeof perms === 'object' ? perms : {};
+  return Object.entries(PERMISSION_GROUPS)
+    .map(([group, keys]) => ({ group, granted: keys.filter((k) => p[k] === true).length, total: keys.length }))
+    .filter((g) => g.granted > 0);
+}
+
+/** Everything the farm detail page shows. Read only when that page opens. */
+export async function getFarmDetail(farmId) {
+  const trading = farmCol(farmId, 'tradingGoats');
+  const safe = (promise, fallback) => promise.catch((e) => { console.warn('Farm detail part failed', e); return fallback; });
+
+  const [partnerSnap, customerSnap, stockSnap, tradingCounts, ownGoats, lots, sales] = await Promise.all([
+    getDocs(farmCol(farmId, 'partners')),
+    getDocs(farmCol(farmId, 'palaiCustomers')),
+    safe(getDocs(farmCol(farmId, 'stockItems')), null),
+    Promise.all([countOf(trading), ...TRADING_STATUSES.map((st) => countOf(query(trading, where('currentStatus', '==', st))))]),
+    safe(countOf(farmCol(farmId, 'ownFarmGoats')), 0),
+    safe(countOf(farmCol(farmId, 'tradingPurchases')), null),
+    safe(countOf(farmCol(farmId, 'sales')), null),
+  ]);
+
+  const partners = partnerSnap.docs.map((d) => {
+    const p = d.data() || {};
+    return {
+      id: d.id,
+      name: str(p.name),
+      mobileNumber: str(p.mobileNumber),
+      email: str(p.email),
+      status: str(p.status || 'active').toLowerCase(),
+      createdAt: toMillis(p.createdAt),
+      access: partnerAccess(p.permissions),
+    };
+  }).sort((a, b) => (a.status === 'active' ? 0 : 1) - (b.status === 'active' ? 0 : 1) || a.name.localeCompare(b.name));
+
+  const customers = await Promise.all(customerSnap.docs.map(async (d) => {
+    const c = d.data() || {};
+    const goats = await safe(palaiCounts(farmId, d.id), { total: 0, checkedOut: 0, active: 0 });
+    return {
+      id: d.id,
+      name: str(c.name),
+      mobileNumber: str(c.mobileNumber),
+      address: str(c.address),
+      package: str(c.package),
+      joiningDate: toMillis(c.joiningDate),
+      goats,
+    };
+  }));
+  customers.sort((a, b) => b.goats.active - a.goats.active || a.name.localeCompare(b.name));
+
+  const [tradingTotal, ...byStatus] = tradingCounts;
+  const tradingByStatus = Object.fromEntries(TRADING_STATUSES.map((st, i) => [st, byStatus[i]]));
+  const known = byStatus.reduce((n, x) => n + x, 0);
+  if (tradingTotal > known) tradingByStatus.Other = tradingTotal - known;
+  const tradingOnFarm = Math.max(0, tradingTotal - (tradingByStatus.Sold || 0) - (tradingByStatus.Dead || 0));
+
+  const stock = stockSnap ? stockSnap.docs.map((d) => {
+    const x = d.data() || {};
+    const quantity = Number(x.quantity) || 0;
+    const low = Number(x.lowStockThreshold) || 0;
+    return { id: d.id, name: str(x.name), quantity, unit: str(x.unit || 'kg'), low: low > 0 && quantity <= low };
+  }).sort((a, b) => Number(b.low) - Number(a.low) || a.name.localeCompare(b.name)) : null;
+
+  const palaiActive = customers.reduce((n, c) => n + c.goats.active, 0);
+  return {
+    loadedAt: Date.now(),
+    partners,
+    customers,
+    stock,
+    trading: { total: tradingTotal, onFarm: tradingOnFarm, byStatus: tradingByStatus },
+    palai: { active: palaiActive, checkedOut: customers.reduce((n, c) => n + c.goats.checkedOut, 0), customers: customers.length },
+    ownGoats,
+    lots,
+    sales,
+    totalGoats: palaiActive + tradingOnFarm + ownGoats,
+  };
+}
+
 /* ---- Subscription actions — every one writes only subscriptionInfo ---- */
 
 function cleanSubscriptionInput(input) {
-  const body = {
-    plan: str(input.plan).trim(),
-    durationDays: String(input.durationDays ?? '').trim(),
-    amount: String(input.amount ?? '').trim(),
-    paymentStatus: str(input.paymentStatus),
-    paymentDate: str(input.paymentDate).trim(),
-    paymentReference: str(input.paymentReference).trim(),
-  };
+  const body = { plan: str(input.plan).trim(), durationDays: String(input.durationDays ?? '').trim() };
   assertValid(body, schemas.subscription);
-  return { ...body, durationDays: Number(body.durationDays), amount: Number(body.amount) };
+  return { ...body, durationDays: Number(body.durationDays) };
 }
 
 async function readFarm(id) {
@@ -169,39 +274,32 @@ async function readFarm(id) {
   return { ref, snap, data: snap.data(), prevInfo: snap.data().subscriptionInfo || {} };
 }
 
-function paymentRecord(id, data, body, type, createdAt, adminEmail) {
-  return removeUndefined({
-    farmId: id,
-    farmName: str(data.farmName) || id,
-    amount: body.amount,
-    plan: body.plan,
-    durationDays: body.durationDays,
-    date: body.paymentDate || localDateKey(new Date()),
-    status: body.paymentStatus,
-    reference: body.paymentReference,
-    type,
-    createdAt,
-    recordedBy: adminEmail || '',
-  });
+// update() replaces the whole subscriptionInfo map, so removed keys go away.
+async function writeSubscription(ref, info) {
+  const batch = writeBatch(db);
+  batch.update(ref, { subscriptionInfo: info });
+  await batch.commit();
+}
+
+// Payment details are no longer tracked; drop any left over from older versions.
+function withoutPaymentFields(info) {
+  const out = { ...info };
+  ['amount', 'paymentStatus', 'paymentDate', 'paymentReference'].forEach((k) => delete out[k]);
+  return out;
 }
 
 // Approve a pending (or previously rejected) farm. The countdown starts on
 // the approval date.
 export async function approveFarm(id, input, adminEmail) {
   const body = cleanSubscriptionInput(input);
-  const { ref, data, prevInfo } = await readFarm(id);
+  const { ref, prevInfo } = await readFarm(id);
   const now = new Date();
   const ts = now.toISOString();
-
   const info = removeUndefined({
-    ...prevInfo,
+    ...withoutPaymentFields(prevInfo),
     status: 'Active',
     plan: body.plan,
     durationDays: body.durationDays,
-    amount: body.amount,
-    paymentStatus: body.paymentStatus,
-    paymentDate: body.paymentDate || localDateKey(now),
-    paymentReference: body.paymentReference,
     approvalDate: ts,
     startDate: ts,
     expiryDate: now.getTime() + body.durationDays * DAY_MS,
@@ -209,44 +307,29 @@ export async function approveFarm(id, input, adminEmail) {
     blocked: prevInfo.blocked || { blocked: false },
   });
   delete info.rejection;
-
-  const batch = writeBatch(db);
-  batch.update(ref, { subscriptionInfo: info });
-  batch.set(doc(subscriptionPaymentsCol), paymentRecord(id, data, body, 'new', ts, adminEmail));
-  await batch.commit();
+  await writeSubscription(ref, info);
 }
 
 // Renew extends from the current expiry if it hasn't passed yet, otherwise
 // from today. Blocked or rejected farms must be unblocked / approved first.
 export async function renewFarm(id, input, adminEmail) {
   const body = cleanSubscriptionInput(input);
-  const { ref, data, prevInfo } = await readFarm(id);
+  const { ref, prevInfo } = await readFarm(id);
   if (prevInfo.blocked?.blocked) throw new Error('Unblock this farm before renewing it.');
   if (prevInfo.status !== 'Active') throw new Error('Only approved farms can be renewed. Approve it first.');
-
   const now = Date.now();
   const currentExpiry = toMillis(prevInfo.expiryDate);
   const base = currentExpiry && currentExpiry > now ? currentExpiry : now;
-  const ts = nowIso();
-
   const info = removeUndefined({
-    ...prevInfo,
+    ...withoutPaymentFields(prevInfo),
     status: 'Active',
     plan: body.plan,
     durationDays: body.durationDays,
-    amount: body.amount,
-    paymentStatus: body.paymentStatus,
-    paymentDate: body.paymentDate || localDateKey(new Date()),
-    paymentReference: body.paymentReference,
-    renewalDate: ts,
+    renewalDate: new Date(now).toISOString(),
     renewedBy: adminEmail || '',
     expiryDate: base + body.durationDays * DAY_MS,
   });
-
-  const batch = writeBatch(db);
-  batch.update(ref, { subscriptionInfo: info });
-  batch.set(doc(subscriptionPaymentsCol), paymentRecord(id, data, body, 'renewal', ts, adminEmail));
-  await batch.commit();
+  await writeSubscription(ref, info);
 }
 
 export async function rejectFarm(id, reason, adminEmail) {
@@ -267,77 +350,6 @@ export async function unblockFarm(id, adminEmail) {
   const { ref, prevInfo } = await readFarm(id);
   const info = { ...prevInfo, blocked: { ...(prevInfo.blocked || {}), blocked: false, unblockedAt: nowIso(), unblockedBy: adminEmail || '' } };
   await setDoc(ref, { subscriptionInfo: info }, { merge: true });
-}
-
-/* ==============================================================
-   SUBSCRIPTION PAYMENTS (separate from the app's farms/{id}/payments)
-   ============================================================== */
-
-function toPublicPayment(snap) {
-  const d = snap.data() || {};
-  return {
-    id: snap.id,
-    farmId: str(d.farmId),
-    farmName: str(d.farmName),
-    amount: Number(d.amount) || 0,
-    plan: str(d.plan),
-    durationDays: Number(d.durationDays) || 0,
-    date: d.date || '',
-    dateKey: localKeyOf(d.date) || localKeyOf(d.createdAt),
-    status: str(d.status || 'Pending'),
-    reference: str(d.reference),
-    type: str(d.type || 'new'),
-    createdAt: toMillis(d.createdAt),
-  };
-}
-
-const byDateDesc = (a, b) => (b.dateKey || '').localeCompare(a.dateKey || '') || (b.createdAt || 0) - (a.createdAt || 0);
-
-export function watchPayments(onChange, onError) {
-  return onSnapshot(subscriptionPaymentsCol, (snap) => onChange(snap.docs.map(toPublicPayment).sort(byDateDesc)), onError);
-}
-
-export async function listPayments() {
-  const snap = await getDocs(subscriptionPaymentsCol);
-  return snap.docs.map(toPublicPayment).sort(byDateDesc);
-}
-
-export async function setPaymentStatus(id, status) {
-  if (!SUBSCRIPTION_STATUSES.includes(status)) throw new Error('Choose a valid payment status.');
-  await setDoc(doc(db, 'subscriptionPayments', id), { status, statusUpdatedAt: nowIso() }, { merge: true });
-}
-
-export function summarizeEarnings(all) {
-  const paid = all.filter((p) => p.status === 'Paid');
-  const now = new Date();
-  const monthKey = localDateKey(now).slice(0, 7);
-  const yearKey = monthKey.slice(0, 4);
-  const sum = (list) => list.reduce((n, p) => n + p.amount, 0);
-
-  const byPlan = {};
-  for (const p of paid) byPlan[p.plan || 'Other'] = (byPlan[p.plan || 'Other'] || 0) + p.amount;
-
-  const byMonth = [];
-  for (let i = 11; i >= 0; i -= 1) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const key = localDateKey(d).slice(0, 7);
-    byMonth.push({
-      key,
-      label: d.toLocaleDateString('en-GB', { month: 'short' }),
-      year: d.getFullYear(),
-      amount: sum(paid.filter((p) => p.dateKey.startsWith(key))),
-    });
-  }
-
-  return {
-    total: sum(paid),
-    thisMonth: sum(paid.filter((p) => p.dateKey.startsWith(monthKey))),
-    thisYear: sum(paid.filter((p) => p.dateKey.startsWith(yearKey))),
-    pendingAmount: sum(all.filter((p) => p.status === 'Pending')),
-    paymentCount: paid.length,
-    byPlan,
-    byMonth,
-  };
 }
 
 /* ==============================================================
@@ -408,16 +420,16 @@ export const deleteEnquiries = (ids) => batchedWrite(ids, (b, id) => b.delete(do
 
 const plansRef = doc(db, 'adminSettings', 'subscriptionPlans');
 export const DEFAULT_PLANS = [
-  { id: 'plan-1y', name: '1 Year', amount: 12000, days: 365 },
-  { id: 'plan-6m', name: '6 Months', amount: 7000, days: 180 },
+  { id: 'plan-1y', name: '1 Year', days: 365 },
+  { id: 'plan-6m', name: '6 Months', days: 180 },
 ];
-const DEFAULT_CONTACT = { name: 'My Goat Farms Support', email: 'mygoatfarm20@gmail.com', phone: '' };
+export const DEFAULT_CONTACT = { name: 'My Goat Farms Support', mobile: '', phones: [], emails: ['mygoatfarm20@gmail.com'] };
 
 export async function getPlans() {
   const snap = await getDoc(plansRef);
   const plans = snap.exists() ? snap.data().plans : null;
   if (!Array.isArray(plans) || !plans.length) return DEFAULT_PLANS.map((p) => ({ ...p }));
-  return plans.map((p, i) => ({ id: str(p.id) || `plan-${i}`, name: str(p.name), amount: Number(p.amount) || 0, days: Number(p.days) || 1 }));
+  return plans.map((p, i) => ({ id: str(p.id) || `plan-${i}`, name: str(p.name), days: Number(p.days) || 1 }));
 }
 
 export async function savePlans(plans) {
@@ -425,28 +437,51 @@ export async function savePlans(plans) {
   if (plans.length > 20) throw new Error('Keep it to 20 plans or fewer.');
   const seen = new Set();
   const clean = plans.map((p) => {
-    const body = { name: str(p.name).trim(), amount: String(p.amount ?? '').trim(), days: String(p.days ?? '').trim() };
+    const body = { name: str(p.name).trim(), days: String(p.days ?? '').trim() };
     assertValid(body, schemas.plan);
     const key = body.name.toLowerCase();
     if (seen.has(key)) throw new Error(`Two plans are called "${body.name}". Give each plan its own name.`);
     seen.add(key);
-    return { id: str(p.id) || `plan-${Date.now()}`, name: body.name, amount: Number(body.amount), days: Number(body.days) };
+    return { id: str(p.id) || `plan-${Date.now()}`, name: body.name, days: Number(body.days) };
   });
   await setDoc(plansRef, { plans: clean, updatedAt: nowIso() });
   return clean;
 }
 
+// config/adminContact is what the app's approval-waiting screen shows.
+// New fields: name, mobile, phones[], emails[]. The single `phone` and
+// `email` fields are still written (mobile and first email) so app
+// versions that only know those keep working.
+const uniq = (list) => [...new Set(list.map((x) => str(x).trim()).filter(Boolean))];
+
 export async function getAdminContact() {
   const snap = await getDoc(doc(db, 'config', 'adminContact'));
-  return snap.exists() ? { ...DEFAULT_CONTACT, ...snap.data() } : { ...DEFAULT_CONTACT };
+  if (!snap.exists()) return { ...DEFAULT_CONTACT, phones: [], emails: [...DEFAULT_CONTACT.emails] };
+  const d = snap.data() || {};
+  const emails = uniq([...(Array.isArray(d.emails) ? d.emails : []), d.email]);
+  const mobile = str(d.mobile || d.phone).trim();
+  const phones = uniq(Array.isArray(d.phones) ? d.phones : []).filter((p) => p !== mobile);
+  return { name: str(d.name) || DEFAULT_CONTACT.name, mobile, phones, emails: emails.length ? emails : [...DEFAULT_CONTACT.emails], updatedAt: d.updatedAt || null };
 }
 
 export async function saveAdminContact(input) {
-  const body = { name: str(input.name).trim(), email: str(input.email).trim(), phone: str(input.phone).trim() };
-  assertValid(body, schemas.contact);
-  const safe = { ...body, phone: body.phone ? normalizePhone(body.phone) : '', updatedAt: nowIso() };
+  const name = str(input.name).trim();
+  const mobileRaw = str(input.mobile).trim();
+  const emails = uniq((input.emails || []).map((e) => str(e).trim().toLowerCase()));
+  const phonesRaw = uniq(input.phones || []);
+
+  assertValid({ name, mobile: mobileRaw }, schemas.contact);
+  if (!emails.length) throw Object.assign(new Error('Add at least one email.'), { code: 'invalid-input' });
+  if (emails.length > 5) throw new Error('Keep it to 5 emails or fewer.');
+  if (phonesRaw.length > 5) throw new Error('Keep it to 5 extra phone numbers or fewer.');
+  emails.forEach((e) => { const m = check(e, [rules.email()]); if (m) throw Object.assign(new Error(m), { code: 'invalid-input' }); });
+  phonesRaw.forEach((p) => { const m = check(p, [rules.phone()]); if (m) throw Object.assign(new Error(m), { code: 'invalid-input' }); });
+
+  const mobile = normalizePhone(mobileRaw);
+  const phones = uniq(phonesRaw.map(normalizePhone)).filter((p) => p !== mobile);
+  const safe = { name, mobile, phones, emails, phone: mobile, email: emails[0], updatedAt: nowIso() };
   await setDoc(doc(db, 'config', 'adminContact'), safe);
-  return safe;
+  return { name, mobile, phones, emails, updatedAt: safe.updatedAt };
 }
 
 /* ==============================================================

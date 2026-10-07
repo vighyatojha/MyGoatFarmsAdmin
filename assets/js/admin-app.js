@@ -8,9 +8,9 @@ import {
   onAuthStateChanged, signInWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence,
 } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js';
 import {
-  watchFarms, watchPayments, watchEnquiries, loadFarmStats, isAdminUid,
-  approveFarm, renewFarm, rejectFarm, blockFarm, unblockFarm, setPaymentStatus,
-  summarizeEarnings, markEnquiriesRead, markEnquiriesNew, deleteEnquiries,
+  watchFarms, watchEnquiries, loadFarmStats, getFarmDetail, isAdminUid,
+  approveFarm, renewFarm, rejectFarm, blockFarm, unblockFarm,
+  markEnquiriesRead, markEnquiriesNew, deleteEnquiries,
   getPlans, savePlans, getAdminContact, saveAdminContact, DEFAULT_PLANS, localKeyOf,
 } from './db.js';
 import { bindForm, schemas, check, setFieldError, localDateKey, LIMITS } from './validators.js';
@@ -37,7 +37,7 @@ function fmtDate(v) {
   const d = typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? new Date(`${v}T00:00:00`) : new Date(v);
   return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
-const fmtMoney = (n) => `₹${(Number(n) || 0).toLocaleString('en-IN')}`;
+const num = (n) => (Number(n) || 0).toLocaleString('en-IN');
 const plural = (n, one, many = `${one}s`) => `${n.toLocaleString('en-IN')} ${n === 1 ? one : many}`;
 
 function relDay(ms) {
@@ -150,8 +150,9 @@ async function busy(btn, label, fn) {
 
 const store = {
   user: null,
-  farms: [], payments: [], enquiries: [],
-  loaded: { farms: false, payments: false, enquiries: false },
+  farms: [], enquiries: [],
+  loaded: { farms: false, enquiries: false },
+  details: new Map(),
   stats: new Map(),
   statsLoading: new Set(),
   plans: DEFAULT_PLANS.map((p) => ({ ...p })),
@@ -171,7 +172,6 @@ function startData() {
     loadMissingStats();
     scheduleRender();
   }, fail('Farms')));
-  unsubscribers.push(watchPayments((list) => { store.payments = list; store.loaded.payments = true; scheduleRender(); }, fail('Payments')));
   unsubscribers.push(watchEnquiries((list) => { store.enquiries = list; store.loaded.enquiries = true; scheduleRender(); }, fail('Enquiries')));
 
   getPlans().then((p) => { store.plans = p; if (current === 'settings') settingsView.load(); }).catch(() => {});
@@ -181,7 +181,8 @@ function stopData() {
   unsubscribers.forEach((u) => { try { u(); } catch { /* already gone */ } });
   unsubscribers = [];
   started = false;
-  Object.assign(store, { farms: [], payments: [], enquiries: [], loaded: { farms: false, payments: false, enquiries: false }, contact: null });
+  Object.assign(store, { farms: [], enquiries: [], loaded: { farms: false, enquiries: false }, contact: null });
+  store.details.clear();
   store.stats.clear();
   store.statsLoading.clear();
 }
@@ -217,7 +218,7 @@ const derived = {
 
 function renderCounts() {
   const counts = { pending: derived.pending().length, expiring: derived.expiring().length, newEnquiries: derived.newEnquiries().length };
-  $$('.chips').forEach((c) => c.classList.toggle('loading', !store.loaded.farms && c.id !== 'payChips' && c.id !== 'enqChips' || (c.id === 'payChips' && !store.loaded.payments) || (c.id === 'enqChips' && !store.loaded.enquiries)));
+  $$('.chips').forEach((c) => c.classList.toggle('loading', c.id === 'enqChips' ? !store.loaded.enquiries : !store.loaded.farms));
   $$('[data-count]').forEach((el) => {
     const n = counts[el.dataset.count] || 0;
     el.hidden = !n;
@@ -236,38 +237,47 @@ const META = {
   dashboard: ['Dashboard', 'What needs your attention today.'],
   farms: ['Farms', 'Every farm that has signed up in the app.'],
   subscriptions: ['Subscriptions', "Each countdown starts on the farm's approval date."],
-  payments: ['Payments', 'Every subscription payment you have recorded.'],
-  earnings: ['Earnings', 'Worked out from payments marked Paid.'],
+  farm: ['Farm', ''],
   enquiries: ['Enquiries', 'Messages sent through the Contact form.'],
-  reports: ['Reports', 'Download farm, subscription, payment and enquiry data as CSV.'],
+  reports: ['Reports', 'Download farm, subscription and enquiry data as CSV.'],
   settings: ['Settings', 'Plans, the support contact farmers see, and your account.'],
 };
 let current = null;
 
+let routeParam = '';
 function routeFromHash() {
-  const key = location.hash.replace(/^#\/?/, '').split(/[/?]/)[0];
-  return META[key] ? key : 'dashboard';
+  const parts = location.hash.replace(/^#\/?/, '').split('?')[0].split('/').map((x) => decodeURIComponent(x));
+  routeParam = '';
+  if (parts[0] === 'farms' && parts[1]) { routeParam = parts[1]; return 'farm'; }
+  return META[parts[0]] && parts[0] !== 'farm' ? parts[0] : 'dashboard';
 }
 
+let currentParam = '';
 function showView(key, { focus = true } = {}) {
-  const changed = key !== current;
+  const changed = key !== current || routeParam !== currentParam;
   current = key;
+  currentParam = routeParam;
   $$('.view').forEach((v) => { v.hidden = v.dataset.view !== key; });
+  const navKey = key === 'farm' ? 'farms' : key;
   $$('.nav-link[data-view]').forEach((a) => {
-    const on = a.dataset.view === key;
+    const on = a.dataset.view === navKey;
     a.classList.toggle('active', on);
     if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
   });
-  const [title, subtitle] = META[key];
-  $('viewTitle').textContent = title;
-  $('viewSubtitle').textContent = subtitle;
-  document.title = `${title} · My Goat Farms Admin`;
+  const [title, subtitle] = VIEWS[key].meta ? VIEWS[key].meta() : META[key];
+  setTitle(title, subtitle);
   $('topbarActions').innerHTML = VIEWS[key].actions ? VIEWS[key].actions() : '';
   VIEWS[key].enter?.();
   VIEWS[key].render();
   renderCounts();
   setSidebar(false);
   if (changed && focus) { window.scrollTo({ top: 0 }); $('viewTitle').focus({ preventScroll: true }); }
+}
+
+function setTitle(title, subtitle) {
+  $('viewTitle').textContent = title;
+  $('viewSubtitle').textContent = subtitle;
+  document.title = `${title} · My Goat Farms Admin`;
 }
 
 window.addEventListener('hashchange', () => { if (document.body.dataset.screen === 'app') showView(routeFromHash()); });
@@ -292,7 +302,7 @@ const subDialog = {
   farm: null,
   mode: 'approve',
   validator: bindForm(
-    { plan: $('subPlan'), durationDays: $('subDuration'), amount: $('subAmount'), paymentStatus: $('subPayStatus'), paymentDate: $('subPayDate'), paymentReference: $('subPayRef') },
+    { plan: $('subPlan'), durationDays: $('subDuration') },
     schemas.subscription
   ),
 
@@ -308,17 +318,12 @@ const subDialog = {
     $('subSave').textContent = approve ? 'Approve farm' : 'Renew subscription';
 
     const plans = store.plans.length ? store.plans : DEFAULT_PLANS;
-    $('subPlan').innerHTML = plans.map((p) => `<option value="${esc(p.name)}" data-days="${Number(p.days)}" data-amount="${Number(p.amount)}">${esc(p.name)} — ${fmtMoney(p.amount)} for ${plural(Number(p.days), 'day')}</option>`).join('');
+    $('subPlan').innerHTML = plans.map((p) => `<option value="${esc(p.name)}" data-days="${Number(p.days)}">${esc(p.name)} (${plural(Number(p.days), 'day')})</option>`).join('');
     // Start from the farm's current plan if it still exists, else the first
-    // plan — and always take duration and amount from that same plan.
+    // plan, and always take the duration from that same plan.
     const chosen = plans.find((p) => p.name === farm.subscription?.plan) || plans[0];
     $('subPlan').value = chosen.name;
     $('subDuration').value = chosen.days;
-    $('subAmount').value = chosen.amount;
-    $('subPayStatus').value = 'Paid';
-    $('subPayDate').value = localDateKey(new Date());
-    $('subPayDate').max = localDateKey(new Date());
-    $('subPayRef').value = '';
     this.preview();
     $('subDialog').showModal();
   },
@@ -335,7 +340,6 @@ $('subPlan').addEventListener('change', (e) => {
   const opt = e.target.selectedOptions[0];
   if (!opt) return;
   $('subDuration').value = opt.dataset.days;
-  $('subAmount').value = opt.dataset.amount;
   subDialog.preview();
 });
 $('subDuration').addEventListener('input', () => subDialog.preview());
@@ -409,7 +413,7 @@ function farmActions(f, { compact = false } = {}) {
 async function runFarmAction(action, id, btn) {
   const farm = store.farms.find((f) => f.id === id);
   if (!farm) return;
-  if (action === 'view') return farmDialog.open(farm);
+  if (action === 'view') { location.hash = `#/farms/${encodeURIComponent(farm.id)}`; return; }
   if (action === 'approve' || action === 'renew') return subDialog.open(farm, action);
   if (action === 'reject' || action === 'block') return reasonDialog.open(farm, action);
   if (action === 'unblock') {
@@ -427,30 +431,8 @@ document.addEventListener('click', (e) => {
   const btn = e.target.closest('[data-farm-action]');
   if (!btn) return;
   e.preventDefault();
-  if (btn.closest('#farmDialog')) $('farmDialog').close();
   runFarmAction(btn.dataset.farmAction, btn.dataset.id, btn);
 });
-
-const farmDialog = {
-  open(f) {
-    const s = store.stats.get(f.id);
-    const count = (k) => (!s ? '…' : s.error ? 'Unavailable' : s[k].toLocaleString('en-IN'));
-    $('farmTitle').textContent = f.farmName || f.id;
-    $('farmSub').innerHTML = `${esc(f.id)} ${statusPill(f.status)}`;
-    const rows = [
-      ['Owner', f.ownerName || '—'], ['Mobile', f.mobileNumber || '—'], ['Email', f.email || '—'], ['Address', f.address || '—'],
-      ['Signed up', fmtDate(f.createdAt)], ['Plan', f.subscription?.plan || 'No subscription yet'],
-      ['Started', fmtDate(f.startDate)], ['Expires', fmtDate(f.expiryDate)],
-      ['Partners', count('partners')], ['Palai goats', count('palaiGoats')], ['Trading goats', count('tradingGoats')], ['Own farm goats', count('ownGoats')],
-    ];
-    if (f.approvedBy) rows.push(['Approved by', f.approvedBy]);
-    if (f.blocked.blocked) rows.push(['Blocked because', f.blocked.reason || '—'], ['Blocked on', fmtDate(f.blocked.blockedAt)]);
-    if (f.status === 'Rejected' && f.rejection) rows.push(['Rejected because', f.rejection.reason || '—']);
-    $('farmBody').innerHTML = `${f.expiryDate ? `<div class="farm-runway">${runway(f)}</div>` : ''}<dl class="details">${rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>`;
-    $('farmFoot').innerHTML = `<button class="btn btn-quiet" type="button" data-close>Close</button>${farmActions(f)}`;
-    $('farmDialog').showModal();
-  },
-};
 
 /* =====================================================================
    Views
@@ -463,7 +445,6 @@ const VIEWS = {};
 VIEWS.dashboard = {
   render() {
     const { farms, loaded } = store;
-    const rev = summarizeEarnings(store.payments);
     const ready = loaded.farms;
     const pending = derived.pending();
     const expiring = derived.expiring();
@@ -475,7 +456,7 @@ VIEWS.dashboard = {
         + kpi('Active farms', farms.filter((f) => f.status === 'Active').length, `of ${plural(farms.length, 'farm')}`)
         + kpi(`Expiring in ${EXPIRING_DAYS} days`, expiring.length, expired.length ? `${expired.length} already expired` : 'None expired', expiring.length || expired.length ? 'tone-warn' : '')
         + kpi('Blocked', farms.filter((f) => f.status === 'Blocked').length, 'Access suspended')
-        + kpi('Paid this month', loaded.payments ? fmtMoney(rev.thisMonth) : '…', loaded.payments ? `${fmtMoney(rev.total)} all time` : '')
+        + kpi('Unread enquiries', loaded.enquiries ? newEnq.length : '…', loaded.enquiries ? `${num(store.enquiries.length)} in total` : '', newEnq.length ? 'tone-info' : '')
       : skeletonRows(5, 'kpi skeleton');
 
     // The queue: one row per thing that needs a decision, most urgent first.
@@ -536,8 +517,8 @@ const farmsView = {
     const loading = store.statsLoading.size;
     const sum = (k) => stats.reduce((n, s) => n + (s[k] || 0), 0);
     $('farmKpis').innerHTML = !store.loaded.farms ? skeletonRows(3, 'kpi skeleton') :
-      kpi('Goats across all farms', loading ? '…' : sum('totalGoats').toLocaleString('en-IN'), `${sum('palaiGoats').toLocaleString('en-IN')} Palai, ${sum('tradingGoats').toLocaleString('en-IN')} trading, ${sum('ownGoats').toLocaleString('en-IN')} own`)
-      + kpi('Active partners', loading ? '…' : sum('partners').toLocaleString('en-IN'), loading ? `Counting ${plural(loading, 'farm')}…` : 'Counted from each farm')
+      kpi('Goats on farms', loading ? '…' : num(sum('totalGoats')), `${num(sum('palaiGoats'))} Palai, ${num(sum('tradingGoats'))} trading, ${num(sum('ownGoats'))} own`)
+      + kpi('Active partners', loading ? '…' : num(sum('partners')), loading ? `Counting ${plural(loading, 'farm')}…` : `${num(sum('palaiCustomers'))} Palai customers`)
       + kpi('Renewing comfortably', (() => { const act = farms.filter((f) => f.status === 'Active'); return act.length ? `${Math.round((act.filter((f) => f.daysLeft > 30).length / act.length) * 100)}%` : '—'; })(), 'Active farms with 30+ days left');
 
     const q = this.q.trim().toLowerCase();
@@ -555,7 +536,7 @@ const farmsView = {
         </button>
         <div class="farm-status">${statusPill(f.status)}<span class="farm-plan">${esc(f.subscription?.plan || 'No plan yet')}</span></div>
         <div class="farm-runway">${runway(f)}</div>
-        <dl class="farm-counts"><div><dt>Goats</dt><dd>${n('totalGoats')}</dd></div><div><dt>Partners</dt><dd>${n('partners')}</dd></div></dl>
+        <dl class="farm-counts"><div><dt>Goats</dt><dd>${n('totalGoats')}</dd></div><div><dt>Partners</dt><dd>${n('partners')}</dd></div><div><dt>Palai customers</dt><dd>${n('palaiCustomers')}</dd></div></dl>
         <div class="farm-actions">${farmActions(f)}</div>
       </article>`;
     }).join('') || `<div class="empty-block"><strong>${farms.length ? 'No farms match.' : 'No farms yet.'}</strong><span>${farms.length ? 'Clear the search or pick another status.' : 'Farms appear here when someone signs up in the app.'}</span></div>`;
@@ -577,11 +558,11 @@ $('topbarActions').addEventListener('click', async (e) => {
   }
   if (btn.id === 'farmExport') {
     downloadCsv(`farms-${localDateKey(new Date())}.csv`,
-      ['Farm ID', 'Farm', 'Owner', 'Mobile', 'Email', 'Status', 'Plan', 'Expiry', 'Days left', 'Partners', 'Palai goats', 'Trading goats', 'Own goats', 'Total goats'],
-      store.farms.map((f) => { const s = store.stats.get(f.id) || {}; return [f.id, f.farmName, f.ownerName, f.mobileNumber, f.email, f.status, f.subscription?.plan || '', f.expiryDate ? fmtDate(f.expiryDate) : '', f.daysLeft ?? '', s.partners ?? '', s.palaiGoats ?? '', s.tradingGoats ?? '', s.ownGoats ?? '', s.totalGoats ?? '']; }));
+      ['Farm ID', 'Farm', 'Owner', 'Mobile', 'Email', 'Address', 'Status', 'Plan', 'Expiry', 'Days left', 'Partners', 'Palai customers', 'Palai goats', 'Trading goats', 'Own goats', 'Total goats'],
+      store.farms.map((f) => { const s = store.stats.get(f.id) || {}; return [f.id, f.farmName, f.ownerName, f.mobileNumber, f.email, f.address, f.status, f.subscription?.plan || '', f.expiryDate ? fmtDate(f.expiryDate) : '', f.daysLeft ?? '', s.partners ?? '', s.palaiCustomers ?? '', s.palaiGoats ?? '', s.tradingGoats ?? '', s.ownGoats ?? '', s.totalGoats ?? '']; }));
     toast(`Exported ${plural(store.farms.length, 'farm')}.`);
   }
-  if (btn.id === 'payExport') paymentsView.export();
+  if (btn.id === 'farmDetailRefresh') farmView.load(true);
 });
 
 /* ---------------- Subscriptions ---------------- */
@@ -607,9 +588,9 @@ const subsView = {
       .sort((a, b) => (a.daysLeft ?? -Infinity) - (b.daysLeft ?? -Infinity));
     $('subTable').innerHTML = rows.map((f) => `<tr>
       <td><button class="link-cell" type="button" data-farm-action="view" data-id="${esc(f.id)}"><strong>${esc(f.farmName || f.id)}</strong><span class="dim">${esc(f.id)}</span></button></td>
-      <td>${f.subscription ? esc(f.subscription.plan) : '<span class="dim">—</span>'}</td>
-      <td>${fmtDate(f.startDate)}</td>
-      <td>${fmtDate(f.expiryDate)}</td>
+      <td data-label="Plan">${f.subscription ? esc(f.subscription.plan) : '<span class="dim">—</span>'}</td>
+      <td data-label="Started">${fmtDate(f.startDate)}</td>
+      <td data-label="Expires">${fmtDate(f.expiryDate)}</td>
       <td>${f.status === 'Blocked' ? statusPill('Blocked') : runway(f)}</td>
       <td class="cell-actions">${farmActions(f, { compact: true })}</td>
     </tr>`).join('') || '<tr><td colspan="6" class="empty-cell">No subscriptions match. Clear the search or pick another filter.</td></tr>';
@@ -618,87 +599,6 @@ const subsView = {
 VIEWS.subscriptions = subsView;
 $('subSearch').addEventListener('input', (e) => { subsView.q = e.target.value; subsView.render(); });
 $('subChips').addEventListener('click', (e) => { const b = e.target.closest('[data-filter]'); if (b) { subsView.filter = b.dataset.filter; subsView.render(); } });
-
-/* ---------------- Payments ---------------- */
-
-const paymentsView = {
-  filter: 'All',
-  q: '',
-  actions: () => '<button class="btn btn-quiet btn-sm" type="button" id="payExport">Export CSV</button>',
-  rows() {
-    const q = this.q.trim().toLowerCase();
-    return store.payments.filter((p) => (this.filter === 'All' || p.status === this.filter)
-      && (!q || [p.farmName, p.farmId, p.plan, p.reference].join(' ').toLowerCase().includes(q)));
-  },
-  render() {
-    const pays = store.payments;
-    const FILTERS = ['All', 'Paid', 'Pending', 'Failed', 'Refunded'];
-    $('payChips').innerHTML = FILTERS.map((f) => `<button type="button" class="chip${f === this.filter ? ' on' : ''}" data-filter="${f}" aria-pressed="${f === this.filter}">${f}<b>${f === 'All' ? pays.length : pays.filter((p) => p.status === f).length}</b></button>`).join('');
-    const rev = summarizeEarnings(pays);
-    $('payKpis').innerHTML = !store.loaded.payments ? skeletonRows(3, 'kpi skeleton') :
-      kpi('Received', fmtMoney(rev.total), plural(rev.paymentCount, 'paid record'))
-      + kpi('Still to collect', fmtMoney(rev.pendingAmount), plural(pays.filter((p) => p.status === 'Pending').length, 'pending record'), rev.pendingAmount ? 'tone-warn' : '')
-      + kpi('Failed or refunded', pays.filter((p) => p.status === 'Failed' || p.status === 'Refunded').length, 'records');
-    if (!store.loaded.payments) { $('payTable').innerHTML = `<tr><td colspan="7">${skeletonRows(4)}</td></tr>`; return; }
-
-    $('payTable').innerHTML = this.rows().map((p) => `<tr>
-      <td><strong>${esc(p.farmName || p.farmId)}</strong><span class="dim block">${esc(p.farmId)}</span></td>
-      <td>${esc(p.plan || '—')}${p.durationDays ? `<span class="dim block">${plural(p.durationDays, 'day')}</span>` : ''}</td>
-      <td class="num">${fmtMoney(p.amount)}</td>
-      <td>${p.type === 'renewal' ? 'Renewal' : 'New'}</td>
-      <td>${fmtDate(p.dateKey)}</td>
-      <td>${p.reference ? esc(p.reference) : '<span class="dim">—</span>'}</td>
-      <td><label class="sr-only" for="pay-${esc(p.id)}">Payment status</label><select class="status-select s-${esc(p.status.toLowerCase())}" id="pay-${esc(p.id)}" data-payment="${esc(p.id)}" data-prev="${esc(p.status)}">${['Paid', 'Pending', 'Failed', 'Refunded'].map((s) => `<option${s === p.status ? ' selected' : ''}>${s}</option>`).join('')}</select></td>
-    </tr>`).join('') || `<tr><td colspan="7" class="empty-cell">${pays.length ? 'No payments match. Clear the search or pick another status.' : 'No payments yet. They are recorded when you approve or renew a farm.'}</td></tr>`;
-  },
-  export() {
-    const rows = this.rows();
-    downloadCsv(`payments-${localDateKey(new Date())}.csv`, ['Payment ID', 'Farm ID', 'Farm', 'Plan', 'Days', 'Amount', 'Type', 'Paid on', 'Reference', 'Status'],
-      rows.map((p) => [p.id, p.farmId, p.farmName, p.plan, p.durationDays, p.amount, p.type, p.dateKey, p.reference, p.status]));
-    toast(`Exported ${plural(rows.length, 'payment')}.`);
-  },
-};
-VIEWS.payments = paymentsView;
-$('paySearch').addEventListener('input', (e) => { paymentsView.q = e.target.value; paymentsView.render(); });
-$('payChips').addEventListener('click', (e) => { const b = e.target.closest('[data-filter]'); if (b) { paymentsView.filter = b.dataset.filter; paymentsView.render(); } });
-$('payTable').addEventListener('change', async (e) => {
-  const sel = e.target.closest('[data-payment]');
-  if (!sel) return;
-  const prev = sel.dataset.prev;
-  const next = sel.value;
-  const ok = await confirmAction({ title: `Mark this payment ${next}?`, text: `It changes from ${prev} to ${next}. Earnings only count payments marked Paid.`, ok: `Mark ${next}`, danger: next !== 'Paid' });
-  if (!ok) { sel.value = prev; return; }
-  sel.disabled = true;
-  try { await setPaymentStatus(sel.dataset.payment, next); toast(`Payment marked ${next}.`); }
-  catch (err) { sel.value = prev; toast(friendlyError(err), true); }
-  finally { sel.disabled = false; }
-});
-
-/* ---------------- Earnings ---------------- */
-
-VIEWS.earnings = {
-  render() {
-    if (!store.loaded.payments) { $('earnKpis').innerHTML = skeletonRows(4, 'kpi skeleton'); $('earnMonths').innerHTML = ''; $('earnPlans').innerHTML = ''; return; }
-    const r = summarizeEarnings(store.payments);
-    $('earnKpis').innerHTML = kpi('All time', fmtMoney(r.total), plural(r.paymentCount, 'paid subscription'))
-      + kpi('This month', fmtMoney(r.thisMonth), new Date().toLocaleDateString('en-GB', { month: 'long' }))
-      + kpi('This year', fmtMoney(r.thisYear), String(new Date().getFullYear()))
-      + kpi('Still to collect', fmtMoney(r.pendingAmount), 'Payments marked Pending', r.pendingAmount ? 'tone-warn' : '');
-
-    const max = Math.max(1, ...r.byMonth.map((m) => m.amount));
-    $('earnMonths').innerHTML = r.byMonth.map((m, i) => `<div class="col${i === r.byMonth.length - 1 ? ' now' : ''}" title="${esc(`${m.label} ${m.year}: ${fmtMoney(m.amount)}`)}">
-      <span class="col-amt">${m.amount ? fmtMoney(m.amount) : ''}</span>
-      <span class="col-bar" style="height:${m.amount ? Math.max(3, (m.amount / max) * 100) : 0}%"></span>
-      <span class="col-label">${esc(m.label)}</span></div>`).join('');
-    $('earnMonths').setAttribute('aria-label', r.byMonth.map((m) => `${m.label} ${m.year}: ${fmtMoney(m.amount)}`).join('; '));
-    $('earnMonths').setAttribute('role', 'img');
-
-    const plans = Object.entries(r.byPlan).sort((a, b) => b[1] - a[1]);
-    const pmax = Math.max(1, ...plans.map(([, v]) => v));
-    $('earnPlans').innerHTML = plans.map(([name, amt]) => `<div class="hbar"><span class="hbar-label">${esc(name)}</span><span class="hbar-track"><span class="hbar-fill" style="width:${(amt / pmax) * 100}%"></span></span><span class="hbar-amt">${fmtMoney(amt)}</span></div>`).join('')
-      || '<p class="empty-inline">No paid subscriptions yet. Amounts appear once a payment is marked Paid.</p>';
-  },
-};
 
 /* ---------------- Enquiries ---------------- */
 
@@ -823,16 +723,6 @@ const REPORTS = {
     rows: () => store.farms.filter((f) => f.subscription), date: (f) => f.startDate,
     cols: [['Farm ID', (f) => f.id], ['Farm', (f) => f.farmName], ['Status', (f) => f.status], ['Plan', (f) => f.subscription?.plan], ['Started', (f) => fmtDate(f.startDate)], ['Expires', (f) => fmtDate(f.expiryDate)], ['Days left', (f) => f.daysLeft]],
   },
-  payment: {
-    title: 'Payments', desc: 'Every payment recorded, any status.',
-    rows: () => store.payments, date: (p) => p.dateKey,
-    cols: [['Payment ID', (p) => p.id], ['Farm', (p) => p.farmName], ['Plan', (p) => p.plan], ['Amount', (p) => p.amount], ['Type', (p) => p.type], ['Paid on', (p) => p.dateKey], ['Reference', (p) => p.reference], ['Status', (p) => p.status]],
-  },
-  revenue: {
-    title: 'Revenue', desc: 'Paid payments only, for your accounts.',
-    rows: () => store.payments.filter((p) => p.status === 'Paid'), date: (p) => p.dateKey,
-    cols: [['Payment ID', (p) => p.id], ['Farm', (p) => p.farmName], ['Plan', (p) => p.plan], ['Amount', (p) => p.amount], ['Paid on', (p) => p.dateKey]],
-  },
   enquiry: {
     title: 'Enquiries', desc: 'Every Contact form message.',
     rows: () => store.enquiries, date: (e) => e.receivedAt,
@@ -897,12 +787,153 @@ $('reportForm').addEventListener('submit', (e) => {
   toast(`${res.r.title} report downloaded: ${plural(res.rows.length, 'record')}.`);
 });
 
+/* ---------------- Farm detail ---------------- */
+
+const LANGS = { en: 'English', hi: 'Hindi', gu: 'Gujarati', mr: 'Marathi', ur: 'Urdu' };
+const telHref = (p) => `tel:${esc(String(p).replace(/[^\d+]/g, ''))}`;
+
+const farmView = {
+  loading: new Set(),
+  errors: new Map(),
+  farm() { return store.farms.find((f) => f.id === currentParam); },
+  meta() {
+    const f = this.farm();
+    return [f ? f.farmName || f.id : 'Farm', f ? `${f.id}${f.ownerName ? `, owned by ${f.ownerName}` : ''}` : currentParam];
+  },
+  actions: () => '<button class="btn btn-quiet btn-sm" type="button" id="farmDetailRefresh">Refresh details</button>',
+  enter() { this.load(false); },
+  async load(force) {
+    const id = currentParam;
+    if (!id || this.loading.has(id) || (!force && store.details.has(id))) return;
+    this.loading.add(id);
+    this.errors.delete(id);
+    if (current === 'farm') this.render();
+    const btn = $('farmDetailRefresh');
+    if (btn) { btn.disabled = true; btn.textContent = 'Refreshing…'; }
+    try {
+      store.details.set(id, await getFarmDetail(id));
+      if (force) toast('Farm details refreshed.');
+    } catch (err) {
+      console.error(err);
+      this.errors.set(id, friendlyError(err));
+    } finally {
+      this.loading.delete(id);
+      const b = $('farmDetailRefresh');
+      if (b) { b.disabled = false; b.textContent = 'Refresh details'; }
+      if (current === 'farm' && currentParam === id) this.render();
+    }
+  },
+  render() {
+    const box = $('farmDetail');
+    const f = this.farm();
+    if (!store.loaded.farms) { box.innerHTML = skeletonRows(4, 'skeleton-card'); return; }
+    if (!f) { box.innerHTML = `<div class="empty-block"><strong>Farm ${esc(currentParam)} wasn't found.</strong><span>It may have been removed. Go back to the farm list.</span></div>`; return; }
+    const [t, sub] = this.meta();
+    setTitle(t, sub);
+    const d = store.details.get(f.id);
+    const err = this.errors.get(f.id);
+    const loading = this.loading.has(f.id);
+    const v = (x) => (d ? num(x) : '<span class="dim">…</span>');
+
+    const header = `<section class="detail-hero panel">
+      <div class="hero-main">
+        <span class="avatar lg">${esc(initials(f.farmName))}</span>
+        <div class="hero-text">
+          <div class="hero-status">${statusPill(f.status)}<span class="dim">${esc(f.subscription?.plan || 'No plan yet')}</span></div>
+          ${f.expiryDate && f.status !== 'Blocked' ? runway(f) : f.status === 'Blocked' ? `<p class="hero-note">Blocked ${f.blocked.blockedAt ? `on ${fmtDate(f.blocked.blockedAt)}` : ''}${f.blocked.reason ? `: ${esc(f.blocked.reason)}` : ''}</p>` : f.status === 'Rejected' && f.rejection ? `<p class="hero-note">Rejected${f.rejection.reason ? `: ${esc(f.rejection.reason)}` : ''}</p>` : '<p class="hero-note">Waiting for approval.</p>'}
+        </div>
+      </div>
+      <div class="hero-actions">${farmActions(f)}</div>
+    </section>`;
+
+    const totals = `<div class="kpis">
+      ${kpi('Goats on the farm', v(d?.totalGoats), d ? `${num(d.palai.active)} Palai, ${num(d.trading.onFarm)} trading, ${num(d.ownGoats)} own` : '')}
+      ${kpi('Active partners', d ? num(d.partners.filter((p) => p.status === 'active').length) : v(0), d ? `${num(d.partners.length)} added in total` : '')}
+      ${kpi('Palai customers', v(d?.palai.customers), d ? `${plural(d.palai.checkedOut, 'goat')} checked out so far` : '')}
+      ${kpi('Trading lots bought', d ? num(d.lots ?? 0) : v(0), d ? plural(d.sales ?? 0, 'sale') : '')}
+    </div>`;
+
+    const info = (rows) => `<dl class="details">${rows.filter(Boolean).map(([k, val]) => `<div><dt>${esc(k)}</dt><dd>${val}</dd></div>`).join('')}</dl>`;
+    const owner = `<article class="panel"><header class="panel-head"><h2>Farmer</h2><p class="muted">Details from the farm's profile in the app.</p></header><div class="panel-body">${info([
+      ['Owner', esc(f.ownerName || '—')],
+      ['Mobile', f.mobileNumber ? `<a href="${telHref(f.mobileNumber)}">${esc(f.mobileNumber)}</a>` : '—'],
+      ['Email', f.email ? `<a href="mailto:${esc(f.email)}">${esc(f.email)}</a>` : '—'],
+      ['Address', esc(f.address || '—')],
+      ['App language', esc(LANGS[f.preferredLanguage] || f.preferredLanguage || '—')],
+      ['Signed up', fmtDate(f.createdAt)],
+      f.business?.name ? ['Name on bills', esc(f.business.name)] : null,
+      f.business?.phone && f.business.phone !== f.mobileNumber ? ['Phone on bills', esc(f.business.phone)] : null,
+    ])}</div></article>`;
+
+    const subscription = `<article class="panel"><header class="panel-head"><h2>Subscription</h2><p class="muted">Set when you approve or renew this farm.</p></header><div class="panel-body">${info([
+      ['Plan', esc(f.subscription?.plan || '—')],
+      ['Length', f.subscription?.durationDays ? plural(f.subscription.durationDays, 'day') : '—'],
+      ['Started', fmtDate(f.startDate)],
+      ['Expires', fmtDate(f.expiryDate)],
+      ['Approved by', esc(f.approvedBy || '—')],
+      f.renewalDate ? ['Last renewed', `${fmtDate(f.renewalDate)}${f.renewedBy ? `, by ${esc(f.renewedBy)}` : ''}`] : null,
+    ])}</div></article>`;
+
+    let body = '';
+    if (err) body = `<div class="banner" data-tone="error">Couldn't load this farm's partners and goats: ${esc(err)} <button class="btn btn-quiet btn-sm" type="button" id="farmDetailRetry">Try again</button></div>`;
+
+    const partners = !d ? skeletonRows(3) : d.partners.length ? `<div class="table-wrap flat"><table class="table">
+      <thead><tr><th>Partner</th><th>Contact</th><th>Status</th><th>Access</th><th>Added</th></tr></thead>
+      <tbody>${d.partners.map((p) => `<tr>
+        <td class="cell-first"><strong>${esc(p.name || 'Unnamed partner')}</strong></td>
+        <td data-label="Contact"><span>${p.mobileNumber ? `<a href="${telHref(p.mobileNumber)}">${esc(p.mobileNumber)}</a>` : '—'}${p.email ? `<span class="dim block">${esc(p.email)}</span>` : ''}</span></td>
+        <td data-label="Status">${statusPill(p.status.charAt(0).toUpperCase() + p.status.slice(1))}</td>
+        <td data-label="Access">${p.access.length ? `<span class="tags">${p.access.map((a) => `<span class="tag" title="${a.granted} of ${a.total} permissions">${esc(a.group)}</span>`).join('')}</span>` : '<span class="dim">No access given</span>'}</td>
+        <td data-label="Added">${fmtDate(p.createdAt)}</td></tr>`).join('')}</tbody></table></div>`
+      : '<p class="empty-inline">No partners added. The owner adds partners from the app.</p>';
+
+    const goats = !d ? skeletonRows(2) : (() => {
+      const rows = [
+        ['Palai goats (active)', d.palai.active, 'palai'],
+        ...Object.entries(d.trading.byStatus).filter(([st]) => st !== 'Sold' && st !== 'Dead').map(([st, n]) => [`Trading: ${st}`, n, 'trading']),
+        ['Own farm goats', d.ownGoats, 'own'],
+      ].filter(([, n]) => n > 0);
+      const max = Math.max(1, ...rows.map(([, n]) => n));
+      const gone = [['Palai goats checked out', d.palai.checkedOut], ['Trading goats sold', d.trading.byStatus.Sold || 0], ['Trading goats died', d.trading.byStatus.Dead || 0]];
+      return (rows.length ? `<div class="bars">${rows.map(([label, n, kind]) => `<div class="hbar"><span class="hbar-label">${esc(label)}</span><span class="hbar-track"><span class="hbar-fill k-${kind}" style="width:${(n / max) * 100}%"></span></span><span class="hbar-amt">${num(n)}</span></div>`).join('')}</div>` : '<p class="empty-inline">No goats on this farm right now.</p>')
+        + `<dl class="details compact gone">${gone.map(([k, n]) => `<div><dt>${esc(k)}</dt><dd>${num(n)}</dd></div>`).join('')}</dl>`;
+    })();
+
+    const customers = !d ? skeletonRows(3) : d.customers.length ? `<div class="table-wrap flat"><table class="table">
+      <thead><tr><th>Customer</th><th>Mobile</th><th>Package</th><th class="num">Goats in Palai</th><th>Joined</th></tr></thead>
+      <tbody>${d.customers.map((c) => `<tr>
+        <td class="cell-first"><strong>${esc(c.name || 'Unnamed')}</strong>${c.address ? `<span class="dim block">${esc(c.address)}</span>` : ''}</td>
+        <td data-label="Mobile">${c.mobileNumber ? `<a href="${telHref(c.mobileNumber)}">${esc(c.mobileNumber)}</a>` : '—'}</td>
+        <td data-label="Package">${esc(c.package || '—')}</td>
+        <td class="num" data-label="Goats in Palai"><span>${num(c.goats.active)}${c.goats.checkedOut ? `<span class="dim block">${num(c.goats.checkedOut)} checked out</span>` : ''}</span></td>
+        <td data-label="Joined">${fmtDate(c.joiningDate)}</td></tr>`).join('')}</tbody></table></div>`
+      : '<p class="empty-inline">No Palai customers yet.</p>';
+
+    const stock = !d ? '' : d.stock === null ? '' : `<article class="panel"><header class="panel-head"><h2>Stock</h2><p class="muted">${d.stock.length ? `${plural(d.stock.length, 'item')}${d.stock.some((x) => x.low) ? `, ${d.stock.filter((x) => x.low).length} running low` : ''}.` : 'No stock items yet.'}</p></header>
+      ${d.stock.length ? `<ul class="stock-list">${d.stock.slice(0, 12).map((x) => `<li${x.low ? ' class="low"' : ''}><span>${esc(x.name || 'Item')}</span><strong>${num(x.quantity)} ${esc(x.unit)}</strong></li>`).join('')}</ul>${d.stock.length > 12 ? `<p class="panel-note dim">And ${plural(d.stock.length - 12, 'more item')}.</p>` : ''}` : ''}</article>`;
+
+    box.innerHTML = `${header}${body}${totals}
+      <div class="detail-grid">
+        ${owner}${subscription}
+        <article class="panel span-2"><header class="panel-head"><h2>Partners</h2><p class="muted">People the owner has added to help run the farm. Only active partners can open it.</p></header>${partners}</article>
+        <article class="panel"><header class="panel-head"><h2>Goats</h2><p class="muted">Goats on the farm now, by type.</p></header><div class="panel-body">${goats}</div></article>
+        ${stock || '<span></span>'}
+        <article class="panel span-2"><header class="panel-head"><h2>Palai customers</h2><p class="muted">People who keep their goats at this farm.</p></header>${customers}</article>
+      </div>
+      ${d ? `<p class="dim updated">Details loaded ${relDay(d.loadedAt).toLowerCase() === 'today' ? `at ${new Date(d.loadedAt).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}` : relDay(d.loadedAt)}.${loading ? ' Refreshing…' : ''}</p>` : ''}`;
+  },
+};
+VIEWS.farm = farmView;
+$('farmDetail').addEventListener('click', (e) => { if (e.target.closest('#farmDetailRetry')) farmView.load(true); });
+
 /* ---------------- Settings ---------------- */
 
 const settingsView = {
   plans: [],
   dirty: false,
   loadedOnce: false,
+  contact: { name: '', mobile: '', phones: [], emails: [] },
+  contactDirty: false,
   enter() { if (!this.loadedOnce) this.load(); },
   async load() {
     this.loadedOnce = true;
@@ -912,9 +943,8 @@ const settingsView = {
     $('accountEmail').textContent = store.user?.email || '—';
     try {
       store.contact = store.contact || await getAdminContact();
-      $('contactName').value = store.contact.name || '';
-      $('contactEmail').value = store.contact.email || '';
-      $('contactPhone').value = store.contact.phone || '';
+      this.contact = { name: store.contact.name, mobile: store.contact.mobile, phones: [...store.contact.phones], emails: [...store.contact.emails] };
+      this.fillContact();
     } catch (err) { toast(friendlyError(err), true); }
   },
   render() { $('accountEmail').textContent = store.user?.email || '—'; },
@@ -922,20 +952,16 @@ const settingsView = {
     $('planGrid').innerHTML = this.plans.map((p, i) => `<fieldset class="plan-card" data-index="${i}">
       <legend>Plan ${i + 1}</legend>
       <div class="field"><label class="field-label" for="plan-name-${i}">Name</label><input class="input" id="plan-name-${i}" data-k="name" value="${esc(p.name)}" maxlength="${LIMITS.planName}" placeholder="e.g. 1 Year"></div>
-      <div class="field-pair">
-        <div class="field"><label class="field-label" for="plan-amount-${i}">Amount (₹)</label><input class="input" id="plan-amount-${i}" data-k="amount" type="number" min="0" max="${LIMITS.maxAmount}" step="1" inputmode="numeric" value="${esc(p.amount)}"></div>
-        <div class="field"><label class="field-label" for="plan-days-${i}">Days</label><input class="input" id="plan-days-${i}" data-k="days" type="number" min="1" max="${LIMITS.maxDays}" step="1" inputmode="numeric" value="${esc(p.days)}"></div>
-      </div>
+      <div class="field"><label class="field-label" for="plan-days-${i}">Length in days</label><input class="input" id="plan-days-${i}" data-k="days" type="number" min="1" max="${LIMITS.maxDays}" step="1" inputmode="numeric" value="${esc(p.days)}"></div>
       <button type="button" class="btn btn-text-danger btn-sm" data-remove="${i}"${this.plans.length === 1 ? ' disabled title="Keep at least one plan"' : ''}>Remove plan</button>
     </fieldset>`).join('');
     $('planHint').textContent = this.dirty ? 'You have unsaved changes.' : '';
   },
-  // Validate every plan card in place; returns true when all are fine.
   validatePlans() {
     let ok = true;
     const names = new Map();
     this.plans.forEach((p, i) => {
-      for (const k of ['name', 'amount', 'days']) {
+      for (const k of ['name', 'days']) {
         const input = $(`plan-${k}-${i}`);
         let msg = check(String(p[k] ?? ''), schemas.plan[k]);
         if (!msg && k === 'name') {
@@ -948,6 +974,69 @@ const settingsView = {
       }
     });
     return ok;
+  },
+
+  /* ---- Support contact ---- */
+  fillContact() {
+    $('contactName').value = this.contact.name;
+    $('contactMobile').value = this.contact.mobile;
+    if (!this.contact.emails.length) this.contact.emails.push('');
+    this.renderLists();
+    this.preview();
+  },
+  renderLists() {
+    for (const kind of ['phones', 'emails']) {
+      const list = this.contact[kind];
+      const isEmail = kind === 'emails';
+      $$(`[data-list="${kind}"]`)[0].innerHTML = list.map((val, i) => `<div class="multi-row">
+        <label class="sr-only" for="${kind}-${i}">${isEmail ? `Email ${i + 1}` : `Phone ${i + 1}`}</label>
+        <div class="field"><input class="input" id="${kind}-${i}" data-kind="${kind}" data-i="${i}" value="${esc(val)}" ${isEmail ? 'type="email" inputmode="email" maxlength="254" placeholder="name@example.com"' : 'type="tel" inputmode="tel" maxlength="20" placeholder="98765 43210"'}></div>
+        <button class="icon-btn" type="button" data-remove-${kind}="${i}" aria-label="Remove ${isEmail ? 'email' : 'phone number'} ${i + 1}"${isEmail && list.length === 1 ? ' disabled' : ''}><svg viewBox="0 0 24 24" class="ico"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      </div>`).join('') || `<p class="field-hint">${isEmail ? 'Add at least one email.' : 'None added.'}</p>`;
+      $$(`[data-add="${kind}"]`)[0].disabled = list.length >= 5;
+    }
+  },
+  // Live preview of the app's approval-waiting screen.
+  preview() {
+    const c = this.contact;
+    const phones = [c.mobile, ...c.phones].map((x) => x.trim()).filter(Boolean);
+    const emails = c.emails.map((x) => x.trim()).filter(Boolean);
+    $('contactPreview').innerHTML = `
+      <img src="../assets/img/logo.png" alt="" width="44" height="44" class="pv-logo">
+      <p class="pv-title">Waiting for approval</p>
+      <p class="pv-text">Your farm has been registered. An admin will review it soon.</p>
+      <div class="pv-card">
+        <p class="pv-label">Need help? Contact</p>
+        <p class="pv-name">${esc(c.name.trim() || 'Admin name')}</p>
+        ${phones.map((p, i) => `<p class="pv-line"><span class="pv-ico">${i === 0 ? 'M' : 'P'}</span>${esc(p)}${i === 0 ? '<span class="pv-tag">Call · WhatsApp</span>' : ''}</p>`).join('') || '<p class="pv-line dim">Mobile number</p>'}
+        ${emails.map((e) => `<p class="pv-line"><span class="pv-ico">@</span>${esc(e)}</p>`).join('') || '<p class="pv-line dim">Email</p>'}
+      </div>`;
+  },
+  validateContact() {
+    let first = null;
+    const mark = (input, msg) => { setFieldError(input, msg); if (msg && !first) first = input; };
+    mark($('contactName'), check(this.contact.name, schemas.contact.name));
+    mark($('contactMobile'), check(this.contact.mobile, schemas.contact.mobile));
+    const seen = new Set();
+    this.contact.phones.forEach((p, i) => {
+      let msg = p.trim() ? check(p, schemas.contactPhone) : 'Enter a phone number, or remove this row.';
+      if (!msg && seen.has(p.replace(/\D/g, '').slice(-10))) msg = 'This number is already listed.';
+      seen.add(p.replace(/\D/g, '').slice(-10));
+      mark($(`phones-${i}`), msg);
+    });
+    const seenMail = new Set();
+    this.contact.emails.forEach((e, i) => {
+      let msg = e.trim() ? check(e, schemas.contactEmail) : 'Enter an email, or remove this row.';
+      if (!msg && seenMail.has(e.trim().toLowerCase())) msg = 'This email is already listed.';
+      seenMail.add(e.trim().toLowerCase());
+      mark($(`emails-${i}`), msg);
+    });
+    if (first) first.focus();
+    return !first;
+  },
+  setContactDirty(on) {
+    this.contactDirty = on;
+    $('contactHint').textContent = on ? 'You have unsaved changes.' : '';
   },
 };
 VIEWS.settings = settingsView;
@@ -970,7 +1059,7 @@ $('planGrid').addEventListener('click', (e) => {
 });
 $('addPlan').addEventListener('click', () => {
   if (settingsView.plans.length >= 20) { toast('Keep it to 20 plans or fewer.', true); return; }
-  settingsView.plans.push({ id: `plan-${Date.now()}`, name: '', amount: '', days: 30 });
+  settingsView.plans.push({ id: `plan-${Date.now()}`, name: '', days: 30 });
   settingsView.dirty = true;
   settingsView.renderPlans();
   $(`plan-name-${settingsView.plans.length - 1}`).focus();
@@ -988,17 +1077,57 @@ $('savePlans').addEventListener('click', async (e) => {
   });
 });
 
-const contactValidator = bindForm({ name: $('contactName'), email: $('contactEmail'), phone: $('contactPhone') }, schemas.contact);
+$('contactForm').addEventListener('input', (e) => {
+  const t = e.target;
+  const sv = settingsView;
+  if (t.id === 'contactName') sv.contact.name = t.value;
+  else if (t.id === 'contactMobile') sv.contact.mobile = t.value;
+  else if (t.dataset.kind) sv.contact[t.dataset.kind][Number(t.dataset.i)] = t.value;
+  else return;
+  sv.setContactDirty(true);
+  sv.preview();
+  if (t.getAttribute('aria-invalid') === 'true') {
+    const rule = t.id === 'contactName' ? schemas.contact.name : t.id === 'contactMobile' ? schemas.contact.mobile : t.dataset.kind === 'emails' ? schemas.contactEmail : schemas.contactPhone;
+    setFieldError(t, t.value.trim() ? check(t.value, rule) : '');
+  }
+});
+$('contactForm').addEventListener('click', (e) => {
+  const sv = settingsView;
+  const add = e.target.closest('[data-add]');
+  if (add) {
+    const kind = add.dataset.add;
+    if (sv.contact[kind].length >= 5) return;
+    sv.contact[kind].push('');
+    sv.renderLists();
+    $(`${kind}-${sv.contact[kind].length - 1}`).focus();
+    return;
+  }
+  for (const kind of ['phones', 'emails']) {
+    const rm = e.target.closest(`[data-remove-${kind}]`);
+    if (rm) {
+      sv.contact[kind].splice(Number(rm.getAttribute(`data-remove-${kind}`)), 1);
+      sv.setContactDirty(true);
+      sv.renderLists();
+      sv.preview();
+    }
+  }
+});
 $('contactForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  if (!contactValidator.validate()) return;
+  const sv = settingsView;
+  if (!sv.validateContact()) { toast('Fix the highlighted contact fields, then save.', true); return; }
   await busy($('saveContact'), 'Saving…', async () => {
-    try { store.contact = await saveAdminContact(contactValidator.values()); $('contactPhone').value = store.contact.phone; toast('Support contact saved.'); }
-    catch (err) { if (err.fields) contactValidator.showErrors(err.fields); toast(friendlyError(err), true); }
+    try {
+      store.contact = await saveAdminContact(sv.contact);
+      sv.contact = { name: store.contact.name, mobile: store.contact.mobile, phones: [...store.contact.phones], emails: [...store.contact.emails] };
+      sv.fillContact();
+      sv.setContactDirty(false);
+      toast('Support contact saved. The app shows it on the approval screen.');
+    } catch (err) { toast(friendlyError(err), true); }
   });
 });
 
-window.addEventListener('beforeunload', (e) => { if (settingsView.dirty) { e.preventDefault(); e.returnValue = ''; } });
+window.addEventListener('beforeunload', (e) => { if (settingsView.dirty || settingsView.contactDirty) { e.preventDefault(); e.returnValue = ''; } });
 
 /* =====================================================================
    Sign in / sign out
@@ -1047,10 +1176,12 @@ $('loginForm').addEventListener('submit', async (e) => {
 });
 
 $('signOut').addEventListener('click', async () => {
-  if (settingsView.dirty && !(await confirmAction({ title: 'Sign out with unsaved plan changes?', text: 'Your edits to the subscription plans will be lost.', ok: 'Sign out' }))) return;
+  if ((settingsView.dirty || settingsView.contactDirty) && !(await confirmAction({ title: 'Sign out with unsaved changes?', text: 'Your unsaved edits in Settings will be lost.', ok: 'Sign out' }))) return;
   storage.del(HINT_KEY);
   stopData();
   settingsView.dirty = false;
+  settingsView.contactDirty = false;
+  settingsView.loadedOnce = false;
   await signOut(auth);
   showLogin();
 });

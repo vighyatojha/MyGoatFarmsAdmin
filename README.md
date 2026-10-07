@@ -28,10 +28,12 @@ MyGoatFarmsAdmin/
 ## How the admin panel loads
 
 The admin panel is one page (`admin/index.html`). Sections live at
-`admin/#/dashboard`, `#/farms`, `#/subscriptions`, `#/payments`,
-`#/earnings`, `#/enquiries`, `#/reports` and `#/settings`.
+`admin/#/dashboard`, `#/farms`, `#/farms/<farm id>` (one farm in
+detail), `#/subscriptions`, `#/enquiries`, `#/reports` and `#/settings`.
+Payments and earnings were removed; the admin panel no longer records
+money. Old payment records stay in Firestore untouched.
 
-- Farms, payments and enquiries are each read **once** through a live
+- Farms and enquiries are each read **once** through a live
   Firestore listener when you sign in. Every section draws from that same
   copy, so switching sections never reloads the page or re-fetches data,
   and changes (yours or a new enquiry) appear everywhere straight away.
@@ -52,8 +54,12 @@ limits on the server (marked `VALIDATOR`), including:
 - farm owners can no longer change their own `subscriptionInfo`
   (approval, block or expiry) from the app;
 - enquiries must have a valid email, bounded fields and an ISO timestamp;
-- subscription payments have a fixed shape, can only change status
-  afterwards, and can't be deleted.
+- the support contact (`config/adminContact`) holds the admin's name,
+  mobile, up to 5 more phone numbers and 1–5 emails. `phone` and `email`
+  are also written (mobile and first email) for app versions that only
+  read those.
+- a farm's detail page reads partners, Palai customers, goat counts and
+  stock only when you open it, using count queries where possible.
 
 **Publish the updated `firestore.rules`** in the Firebase console after
 deploying this version.

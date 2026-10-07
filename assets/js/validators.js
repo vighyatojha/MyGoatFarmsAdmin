@@ -11,9 +11,7 @@ export const LIMITS = {
   subject: 150,
   message: 2000,
   reason: 300,
-  reference: 120,
   planName: 40,
-  maxAmount: 1000000,   // ₹10,00,000
   maxDays: 3650,        // 10 years
 };
 
@@ -84,8 +82,6 @@ export function validateObject(obj, schema) {
 
 /* ---------------- Schemas shared by the forms and db.js ---------------- */
 
-export const SUBSCRIPTION_STATUSES = ['Paid', 'Pending', 'Failed', 'Refunded'];
-
 export const schemas = {
   enquiry: {
     name: [rules.required('your name'), rules.maxLen(LIMITS.name, 'Name')],
@@ -101,24 +97,20 @@ export const schemas = {
   subscription: {
     plan: [rules.required('a plan'), rules.maxLen(LIMITS.planName, 'Plan name')],
     durationDays: [rules.integer('duration', 1, LIMITS.maxDays)],
-    amount: [rules.integer('amount', 0, LIMITS.maxAmount)],
-    paymentStatus: [rules.oneOf(SUBSCRIPTION_STATUSES, 'payment status')],
-    paymentDate: [rules.dateNotFuture('payment date')],
-    paymentReference: [rules.maxLen(LIMITS.reference, 'Reference'), rules.noFormula('Reference')],
   },
   reason: {
     reason: [rules.required('a reason'), rules.minLen(5, 'Reason'), rules.maxLen(LIMITS.reason, 'Reason')],
   },
   plan: {
     name: [rules.required('a plan name'), rules.maxLen(LIMITS.planName, 'Plan name'), rules.noFormula('Plan name')],
-    amount: [rules.integer('amount', 0, LIMITS.maxAmount)],
     days: [rules.integer('duration', 1, LIMITS.maxDays)],
   },
   contact: {
-    name: [rules.maxLen(LIMITS.name, 'Name')],
-    email: [rules.required('a support email'), rules.email()],
-    phone: [rules.phone()],
+    name: [rules.required("the admin's name"), rules.maxLen(LIMITS.name, 'Name')],
+    mobile: [rules.required("the admin's mobile number"), rules.phone()],
   },
+  contactEmail: [rules.email()],
+  contactPhone: [rules.phone()],
 };
 
 /** Throws an Error carrying .fields when the object fails its schema. */
