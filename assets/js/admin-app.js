@@ -1123,7 +1123,11 @@ $('contactForm').addEventListener('submit', async (e) => {
       sv.fillContact();
       sv.setContactDirty(false);
       toast('Support contact saved. The app shows it on the approval screen.');
-    } catch (err) { toast(friendlyError(err), true); }
+    } catch (err) {
+      toast(err?.code === 'permission-denied'
+        ? "Firestore blocked saving the support contact. In Firebase → Firestore → Rules, replace the config/{docId} block with the one from firestore.rules in the repo, publish, then save again."
+        : friendlyError(err), true);
+    }
   });
 });
 
