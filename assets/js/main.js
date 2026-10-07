@@ -6,6 +6,25 @@ import { bindForm, schemas, LIMITS } from './validators.js';
 const $ = (id) => document.getElementById(id);
 $('year').textContent = new Date().getFullYear();
 
+// Header: hairline once the page scrolls, and the phone menu.
+const header = $('top');
+const menuBtn = $('menuToggle');
+if (header) {
+  const onScroll = () => header.classList.toggle('scrolled', window.scrollY > 8);
+  onScroll();
+  window.addEventListener('scroll', onScroll, { passive: true });
+}
+if (header && menuBtn) {
+  const setMenu = (open) => {
+    header.classList.toggle('menu-open', open);
+    menuBtn.setAttribute('aria-expanded', String(open));
+  };
+  menuBtn.addEventListener('click', () => setMenu(!header.classList.contains('menu-open')));
+  $('siteNav').addEventListener('click', (e) => { if (e.target.closest('a')) setMenu(false); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setMenu(false); });
+  document.addEventListener('click', (e) => { if (!header.contains(e.target)) setMenu(false); });
+}
+
 const form = $('enquiryForm');
 const statusBox = $('enquiryStatus');
 const submitBtn = $('enquirySubmit');

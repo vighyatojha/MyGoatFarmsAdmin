@@ -3,230 +3,265 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Goat Farms · Complete Goat Farm &amp; Palai Management</title>
-  <meta name="description" content="One platform to manage goats, Palai customers, trading, stock, health, expenses, payments and reports. Simple goat farm management software from Surat, Gujarat.">
-  <meta name="theme-color" content="#2e7d32">
+  <title>My Goat Farms · Goat Farm &amp; Palai Management App</title>
+  <meta name="description" content="One app to manage goats, Palai customers, trading, stock, health, expenses and reports. Goat farm management software from Kamrej, Surat, Gujarat.">
+  <meta name="theme-color" content="#173d24">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="My Goat Farms · One Platform for Complete Goat Farm &amp; Palai Management">
-  <meta property="og:description" content="Manage your goats, Palai, stock and business from one simple platform.">
-  <meta property="og:image" content="/assets/img/logo.png">
+  <meta property="og:title" content="My Goat Farms · Goat Farm &amp; Palai Management">
+  <meta property="og:description" content="Manage your goats, Palai customers, trading and stock from one simple app.">
+  <meta property="og:image" content="assets/img/logo.png">
   <link rel="icon" type="image/png" href="assets/img/favicon.png">
   <link rel="apple-touch-icon" href="assets/img/logo.png">
-  <link rel="stylesheet" href="assets/css/styles.css">
-  <link rel="stylesheet" href="assets/css/landing.css">
+  <link rel="preload" href="assets/fonts/Poppins-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/Baloo2-Bold.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="assets/css/site.css?v=20261007">
 </head>
 <body>
-  <header class="site-header">
-    <a class="brand" href="./" aria-label="My Goat Farms home">
-      <span class="logo-ring"><img src="assets/img/logo.png" alt="" width="36" height="36"></span>
-      <span class="brand-name">My Goat Farms</span>
-    </a>
-    <nav aria-label="Main">
-      <a class="nav-link" href="#solutions">Solutions</a>
-      <a class="nav-link" href="#about">About</a>
-      <a class="nav-link" href="#features">Features</a>
-      <a class="nav-link" href="#contact">Contact</a>
-      <a class="btn btn-primary btn-sm" href="#contact">Get Started</a>
-    </nav>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="top" id="top">
+    <div class="wrap top-inner">
+      <a class="wordmark" href="./" aria-label="My Goat Farms home">
+        <img src="assets/img/logo.png" alt="" width="40" height="40">
+        <span>My Goat Farms</span>
+      </a>
+      <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="siteNav">
+        <span class="menu-bars" aria-hidden="true"></span><span class="sr-only">Menu</span>
+      </button>
+      <nav class="site-nav" id="siteNav" aria-label="Main">
+        <a href="#modules">What it manages</a>
+        <a href="#journey">How it works</a>
+        <a href="#features">Features</a>
+        <a href="#contact">Contact</a>
+        <a class="btn btn-primary btn-sm" href="#contact">Send an enquiry</a>
+      </nav>
+    </div>
   </header>
 
-  <main>
+  <main id="main">
+    <!-- HERO -->
     <section class="hero">
-      <div class="hero-copy">
-        <h1>One Platform for Complete Goat Farm &amp; Palai Management</h1>
-        <p>Manage your goats, Palai customers, trading, stock, health, expenses, payments and reports — all from one simple and easy-to-use platform.</p>
-        <div class="hero-actions">
-          <a class="btn btn-primary" href="#contact">Get Started</a>
-          <a class="btn btn-outline" href="#contact">Contact Us</a>
-        </div>
-      </div>
-
-      <div class="hero-card">
-        <img class="hero-logo" src="assets/img/logo.png" alt="My Goat Farms logo" width="180" height="180">
-        <h3>My Goat Farms</h3>
-        <p>Goats, Palai, trading and stock in one connected system.</p>
-        <div class="mini-stats">
-          <div><strong>Palai</strong><span>Managed</span></div>
-          <div><strong>Trading</strong><span>Recorded</span></div>
-          <div><strong>Reports</strong><span>Ready</span></div>
-        </div>
-      </div>
-    </section>
-
-    <section id="solutions" class="section">
-      <div class="section-heading">
-        <h2>Our Solutions</h2>
-        <p>Four connected modules that cover everything from the first purchase to the final bill.</p>
-      </div>
-      <div class="feature-grid">
-        <article>
-          <div class="icon-chip teal"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-          <h3>Customer Palai Management</h3>
-          <p>Manage goats kept at your farm on behalf of customers. Track goat details, weight, health, vaccination, hoof cutting, hair trimming, Palai charges, payments, billing and monthly reports — all in one place.</p>
-        </article>
-        <article>
-          <div class="icon-chip blue"><svg class="svg-icon" viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></div>
-          <h3>Goat Trading</h3>
-          <p>Manage your complete goat trading operations from purchase to sale. Record new goat arrivals, registration, purchase details, stock, bookings, sales, payments and delivery.</p>
-        </article>
-        <article>
-          <div class="icon-chip purple"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
-          <h3>Own Palai</h3>
-          <p>Manage goats owned by your farm with complete records of weight, health, expenses, growth, feeding, treatment and sale history.</p>
-        </article>
-        <article>
-          <div class="icon-chip orange"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
-          <h3>Reports &amp; Records</h3>
-          <p>Keep all your important farm records organized in one digital platform. Generate reports for goats, customers, purchases, sales, expenses, payments, stock and Palai.</p>
-        </article>
-      </div>
-    </section>
-
-    <section id="about" class="split-section">
-      <div>
-        <h2>Simple Technology for Smarter Goat Farm Management</h2>
-      </div>
-      <div class="about-copy">
-        <p>My Goat Farms is a digital farm management platform designed to make goat farming and Palai management simple, organized and efficient.</p>
-        <p>From purchasing and registering a goat to tracking its health, weight, expenses, Palai care and final sale, you can manage the complete journey from one platform.</p>
-        <p>Our goal is simple — help farm owners reduce manual paperwork, keep accurate records and manage their business more efficiently.</p>
-      </div>
-    </section>
-
-    <section id="features" class="section">
-      <div class="section-heading">
-        <h2>Key Features</h2>
-        <p>Everything a goat farm needs for daily work, in one place.</p>
-      </div>
-      <div class="feature-grid cols-3">
-        <article>
-          <div class="icon-chip teal"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-          <h3>Customer Palai</h3>
-          <p>Keep complete records of customer goats, including goat details, weight, health, treatments, vaccinations, services, Palai charges, payments and delivery.</p>
-        </article>
-        <article>
-          <div class="icon-chip blue"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
-          <h3>Stock Management</h3>
-          <p>Track your farm's stock, purchases, usage, sales and expenses so you always know what is available and where your money is going.</p>
-        </article>
-        <article>
-          <div class="icon-chip purple"><svg class="svg-icon" viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></div>
-          <h3>Goat Trading</h3>
-          <p>Manage goats from purchase and registration to stock management, booking, sale and delivery.</p>
-        </article>
-        <article>
-          <div class="icon-chip"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
-          <h3>Health Management</h3>
-          <p>Track important health activities such as vaccination, deworming, hoof cutting, hair trimming and other treatments.</p>
-        </article>
-        <article>
-          <div class="icon-chip orange"><svg class="svg-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
-          <h3>Payments &amp; Expenses</h3>
-          <p>Record customer payments, farm expenses, goat purchase costs, sales and other financial transactions in one place.</p>
-        </article>
-        <article>
-          <div class="icon-chip teal"><svg class="svg-icon" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
-          <h3>Digital Reports</h3>
-          <p>Generate professional reports and bills whenever you need them and easily share them with customers.</p>
-        </article>
-      </div>
-    </section>
-
-    <section id="why" class="section section-tint">
-      <div class="section-heading">
-        <h2>Why Choose My Goat Farms?</h2>
-      </div>
-      <div class="why-grid">
-        <div><h3>Simple</h3><p>Designed with an easy-to-understand interface for everyday farm operations.</p></div>
-        <div><h3>Organized</h3><p>Keep goat, customer, stock, payment and business records together in one place.</p></div>
-        <div><h3>Connected</h3><p>Customer Palai, Own Palai, Trading and Stock Management work together as one complete system.</p></div>
-        <div><h3>Trackable</h3><p>Track weight, health, expenses, payments, purchases and sales with organized digital records.</p></div>
-        <div><h3>Digital</h3><p>Reduce paperwork and move your daily farm records to a simple digital platform.</p></div>
-        <div><h3>Customer-Friendly</h3><p>Generate clear bills and reports that can be shared directly with your customers.</p></div>
-      </div>
-    </section>
-
-    <section class="cta">
-      <div>
-        <h2>Everything You Need to Manage Your Goat Farm</h2>
-        <p>Whether you manage a small goat farm or a growing commercial operation, My Goat Farms helps you manage your daily activities from one platform.</p>
-      </div>
-      <ul class="manage-list">
-        <li>Manage your goats.</li>
-        <li>Manage your Palai.</li>
-        <li>Manage your stock.</li>
-        <li>Manage your business.</li>
-      </ul>
-    </section>
-
-    <section id="contact" class="section">
-      <div class="section-heading">
-        <h2>Let's Make Goat Farm Management Simpler</h2>
-        <p>Have questions about My Goat Farms or want to get started? Send us a message and our team will review it.</p>
-      </div>
-
-      <div class="contact-grid">
-        <div class="contact-card contact-details-card">
-          <div class="contact-details">
-            <h3>My Goat Farms</h3>
-            <address>Kamrej,<br>Surat – 394190, Gujarat, India</address>
-            <p class="contact-line">
-              <a href="tel:+916354081563">63540 81563</a> &nbsp;|&nbsp; <a href="tel:+919537463093">95374 63093</a>
-            </p>
-            <p class="contact-line">www.mygoatfarms.com</p>
+      <div class="wrap hero-inner">
+        <div class="hero-copy">
+          <p class="hero-kicker">Goat farm &amp; Palai management app</p>
+          <h1>Every goat on your farm, on record.</h1>
+          <p class="hero-sub">From the day a goat arrives to the day it leaves: Customer Palai, your own goats, trading, stock, health and bills, in one app your whole farm team can use.</p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#contact">Send an enquiry</a>
+            <a class="btn btn-wa" href="https://wa.me/916354081563?text=Hello%2C%20I%27d%20like%20to%20know%20more%20about%20My%20Goat%20Farms." target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M20.5 3.5A11.8 11.8 0 0 0 1.9 17.7L.5 23.5l5.9-1.5A11.8 11.8 0 0 0 23.8 12a11.7 11.7 0 0 0-3.3-8.5ZM12 21.6a9.7 9.7 0 0 1-5-1.4l-.3-.2-3.5.9.9-3.4-.2-.4a9.7 9.7 0 1 1 8.1 4.5Zm5.3-7.2c-.3-.1-1.7-.9-2-1s-.5-.1-.7.2l-.9 1.1c-.2.2-.3.2-.6.1a7.9 7.9 0 0 1-3.9-3.4c-.3-.5.3-.5.8-1.6a.5.5 0 0 0 0-.5l-.9-2.2c-.2-.6-.5-.5-.7-.5h-.6a1.1 1.1 0 0 0-.8.4 3.4 3.4 0 0 0-1 2.5 5.9 5.9 0 0 0 1.2 3.1 13.4 13.4 0 0 0 5.2 4.6c1.9.8 2.7.9 3.6.7a3.1 3.1 0 0 0 2-1.4 2.5 2.5 0 0 0 .2-1.4c-.1-.1-.3-.2-.6-.3Z"/></svg>
+              WhatsApp us
+            </a>
           </div>
-          <div class="contact-actions">
-            <a class="btn btn-outline" href="tel:+916354081563">Call Us</a>
+          <ul class="hero-facts" aria-label="At a glance">
+            <li><strong>4</strong> connected modules</li>
+            <li><strong>Owner + partners</strong> on one farm</li>
+            <li><strong>Kamrej, Surat</strong> based team</li>
+          </ul>
+        </div>
+
+        <!-- The signature: a goat record as it looks in the app -->
+        <div class="hero-visual" aria-hidden="true">
+          <div class="phone">
+            <div class="phone-notch"></div>
+            <div class="screen">
+              <div class="app-bar">
+                <span class="app-back">‹</span>
+                <span class="app-title">Goat record</span>
+                <span class="app-dot"></span>
+              </div>
+              <div class="goat-head">
+                <div class="goat-avatar">
+                  <svg viewBox="0 0 64 64"><path d="M18 22c-6-2-10-8-9-14 5 2 9 6 11 11M46 22c6-2 10-8 9-14-5 2-9 6-11 11" fill="none" stroke="#8a6a3d" stroke-width="3" stroke-linecap="round"/><ellipse cx="32" cy="36" rx="15" ry="18" fill="#f3ead9"/><ellipse cx="17" cy="30" rx="7" ry="3.5" fill="#e6d6b8" transform="rotate(-25 17 30)"/><ellipse cx="47" cy="30" rx="7" ry="3.5" fill="#e6d6b8" transform="rotate(25 47 30)"/><circle cx="26" cy="33" r="2.2" fill="#3b2f22"/><circle cx="38" cy="33" r="2.2" fill="#3b2f22"/><ellipse cx="32" cy="45" rx="6" ry="4" fill="#e9c9b0"/><path d="M29 52c1 4 5 4 6 0" fill="none" stroke="#d9cbb0" stroke-width="2.5" stroke-linecap="round"/></svg>
+                </div>
+                <div>
+                  <p class="goat-tag">MGF-0142</p>
+                  <p class="goat-owner">Sirohi, in Rafiq Bhai's Palai</p>
+                </div>
+                <span class="pill ok">Healthy</span>
+              </div>
+
+              <div class="weight-card">
+                <div class="weight-top">
+                  <span>Weight</span>
+                  <strong>38.4 kg</strong>
+                  <em>+6.1 kg in 3 months</em>
+                </div>
+                <svg class="weight-chart" viewBox="0 0 220 70" preserveAspectRatio="none">
+                  <defs><linearGradient id="wg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#2e7d32" stop-opacity=".25"/><stop offset="1" stop-color="#2e7d32" stop-opacity="0"/></linearGradient></defs>
+                  <path d="M0 58 L37 52 L73 47 L110 40 L147 31 L183 24 L220 14 L220 70 L0 70Z" fill="url(#wg)"/>
+                  <path class="weight-line" d="M0 58 L37 52 L73 47 L110 40 L147 31 L183 24 L220 14" fill="none" stroke="#2e7d32" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="220" cy="14" r="4" fill="#2e7d32"/>
+                </svg>
+                <div class="weight-months"><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span></div>
+              </div>
+
+              <ul class="care-list">
+                <li><span class="care-ico v">V</span><div><strong>PPR vaccine</strong><small>Done · 12 Sep</small></div><span class="tick">✓</span></li>
+                <li><span class="care-ico h">H</span><div><strong>Hoof cutting</strong><small>Due in 4 days</small></div><span class="pill warn">Soon</span></li>
+                <li><span class="care-ico b">₹</span><div><strong>October Palai bill</strong><small>Ready to share</small></div><span class="share">Share</span></li>
+              </ul>
+            </div>
           </div>
         </div>
+      </div>
+    </section>
 
-        <form id="enquiryForm" class="contact-card enquiry-form" novalidate>
-          <h3>Send an Enquiry</h3>
-          <p class="form-hint">We read every message here — this form doesn't start a live chat, so please share everything you'd like us to know.</p>
+    <!-- MODULES -->
+    <section class="band" id="modules">
+      <div class="wrap">
+        <header class="section-head">
+          <h2>Four parts of the farm, one connected record</h2>
+          <p>A goat can move from trading into your own Palai, or from a customer's Palai to a sale. Its history follows it.</p>
+        </header>
+
+        <div class="modules">
+          <article class="module">
+            <div class="module-ico teal"><svg viewBox="0 0 24 24" class="ico"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+            <div>
+              <h3>Customer Palai</h3>
+              <p>Goats you keep and care for on behalf of customers.</p>
+              <ul><li>Weight, health and services per goat</li><li>Monthly Palai charges and advances</li><li>Bills you can share with the customer</li></ul>
+            </div>
+          </article>
+          <article class="module">
+            <div class="module-ico blue"><svg viewBox="0 0 24 24" class="ico"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></div>
+            <div>
+              <h3>Goat trading</h3>
+              <p>Buying lots, registering goats and selling them on.</p>
+              <ul><li>Purchase lots and supplier payments</li><li>Bookings, sales and delivery</li><li>Profit on every lot</li></ul>
+            </div>
+          </article>
+          <article class="module">
+            <div class="module-ico purple"><svg viewBox="0 0 24 24" class="ico"><path d="M3 10.5 12 3l9 7.5V20a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 20z"/><path d="M9 21.5V13h6v8.5"/></svg></div>
+            <div>
+              <h3>Own Palai</h3>
+              <p>Goats your farm owns and raises.</p>
+              <ul><li>Growth and feeding records</li><li>Treatments and breeding</li><li>Cost of each goat until sale</li></ul>
+            </div>
+          </article>
+          <article class="module">
+            <div class="module-ico orange"><svg viewBox="0 0 24 24" class="ico"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05M12 22.08V12"/></svg></div>
+            <div>
+              <h3>Stock &amp; accounts</h3>
+              <p>Feed, medicine and money in and out.</p>
+              <ul><li>Stock levels with low-stock alerts</li><li>Expenses and income</li><li>Reports for any date range</li></ul>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- JOURNEY (a real sequence, so it is numbered) -->
+    <section class="journey-band" id="journey">
+      <div class="wrap">
+        <header class="section-head light">
+          <h2>How a goat's record builds up</h2>
+          <p>Each step adds to the same record, so nothing is written twice.</p>
+        </header>
+        <ol class="journey">
+          <li><span class="step">1</span><h3>Arrives</h3><p>Bought in a lot or brought in by a customer. Tag, breed and starting weight are recorded.</p></li>
+          <li><span class="step">2</span><h3>Is cared for</h3><p>Weigh-ins, vaccines, deworming, hoof cutting and treatments, with reminders when they're due.</p></li>
+          <li><span class="step">3</span><h3>Costs are tracked</h3><p>Feed, medicine and Palai charges add up against the goat or the customer automatically.</p></li>
+          <li><span class="step">4</span><h3>Leaves the farm</h3><p>Sold, delivered or checked out to its owner, with the bill or receipt ready to share.</p></li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="band" id="features">
+      <div class="wrap features-layout">
+        <header class="section-head left">
+          <h2>Built for daily farm work</h2>
+          <p>Simple screens for the things you do every day, and records you can trust at the end of the month.</p>
+          <a class="btn btn-quiet" href="#contact">Ask for a demo</a>
+        </header>
+        <dl class="feature-list">
+          <div><dt>Health reminders</dt><dd>Vaccination, deworming, hoof cutting and hair trimming, with the next date on every goat.</dd></div>
+          <div><dt>Partners with their own access</dt><dd>Add the people who help run the farm and choose what each of them can see and change.</dd></div>
+          <div><dt>Bills and reports to share</dt><dd>Monthly Palai bills, sale receipts and reports you can send straight to customers.</dd></div>
+          <div><dt>Payment reminders</dt><dd>Send customers a WhatsApp reminder for pending amounts in one tap.</dd></div>
+          <div><dt>Stock you can count on</dt><dd>Know what feed and medicine is left, and get warned before it runs out.</dd></div>
+          <div><dt>Less paperwork</dt><dd>Registers and notebooks replaced by records that are searchable and backed up.</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section class="contact-band" id="contact">
+      <div class="wrap contact-layout">
+        <div class="contact-info">
+          <h2>Talk to us about your farm</h2>
+          <p>Tell us how many goats you manage and what you'd like to keep track of. We'll reply by phone or email.</p>
+
+          <div class="reach">
+            <a class="reach-row" href="tel:+916354081563">
+              <span class="reach-ico"><svg viewBox="0 0 24 24" class="ico"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg></span>
+              <span><strong>63540 81563</strong><small>Call</small></span>
+            </a>
+            <a class="reach-row" href="tel:+919537463093">
+              <span class="reach-ico"><svg viewBox="0 0 24 24" class="ico"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg></span>
+              <span><strong>95374 63093</strong><small>Call</small></span>
+            </a>
+            <a class="reach-row" href="https://wa.me/916354081563?text=Hello%2C%20I%27d%20like%20to%20know%20more%20about%20My%20Goat%20Farms." target="_blank" rel="noopener">
+              <span class="reach-ico wa"><svg viewBox="0 0 24 24" class="ico fill"><path d="M20.5 3.5A11.8 11.8 0 0 0 1.9 17.7L.5 23.5l5.9-1.5A11.8 11.8 0 0 0 23.8 12a11.7 11.7 0 0 0-3.3-8.5ZM12 21.6a9.7 9.7 0 0 1-5-1.4l-.3-.2-3.5.9.9-3.4-.2-.4a9.7 9.7 0 1 1 8.1 4.5Z"/></svg></span>
+              <span><strong>WhatsApp</strong><small>63540 81563</small></span>
+            </a>
+            <div class="reach-row static">
+              <span class="reach-ico"><svg viewBox="0 0 24 24" class="ico"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
+              <span><strong>Kamrej, Surat</strong><small>Gujarat 394190, India</small></span>
+            </div>
+          </div>
+        </div>
+
+        <form id="enquiryForm" class="enquiry" novalidate>
+          <h3>Send an enquiry</h3>
+          <p class="form-note">We read every message. This isn't a live chat, so include everything you'd like us to know.</p>
 
           <div class="form-row">
             <div class="field">
-              <label class="field-label" for="enqName">Name</label>
+              <label class="field-label" for="enqName">Your name</label>
               <input id="enqName" class="input" maxlength="100" autocomplete="name" required>
             </div>
             <div class="field">
-              <label class="field-label" for="enqEmail">Email</label>
-              <input id="enqEmail" class="input" type="email" maxlength="254" autocomplete="email" inputmode="email" required>
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="field">
-              <label class="field-label" for="enqPhone">Phone (optional)</label>
+              <label class="field-label" for="enqPhone">Phone <span class="opt">(optional)</span></label>
               <input id="enqPhone" class="input" type="tel" maxlength="20" autocomplete="tel" inputmode="tel" placeholder="98765 43210">
-            </div>
-            <div class="field">
-              <label class="field-label" for="enqSubject">Subject</label>
-              <input id="enqSubject" class="input" maxlength="150" required>
             </div>
           </div>
           <div class="field">
+            <label class="field-label" for="enqEmail">Email</label>
+            <input id="enqEmail" class="input" type="email" maxlength="254" autocomplete="email" inputmode="email" required>
+          </div>
+          <div class="field">
+            <label class="field-label" for="enqSubject">Subject</label>
+            <input id="enqSubject" class="input" maxlength="150" placeholder="e.g. Palai management for 60 goats" required>
+          </div>
+          <div class="field">
             <label class="field-label" for="enqMessage">Message</label>
-            <textarea id="enqMessage" class="input" maxlength="2000" required></textarea>
+            <textarea id="enqMessage" class="input" rows="5" maxlength="2000" required></textarea>
             <p class="field-hint" id="enqMessageCount">0 / 2000</p>
           </div>
           <!-- Honeypot field: real visitors never fill this in -->
-          <div style="position:absolute; left:-9999px;" aria-hidden="true">
+          <div class="hp" aria-hidden="true">
             <label for="enqCompany">Leave this field empty</label>
             <input id="enqCompany" name="mgf_hp_check" tabindex="-1" autocomplete="off">
           </div>
 
-          <div id="enquiryStatus" class="form-error" role="alert"></div>
-          <button id="enquirySubmit" class="btn btn-primary" type="submit">Send Enquiry</button>
+          <p id="enquiryStatus" class="form-status" role="alert"></p>
+          <button id="enquirySubmit" class="btn btn-primary btn-block" type="submit">Send Enquiry</button>
         </form>
       </div>
     </section>
   </main>
 
-  <footer>
-    <span>© <span id="year">2026</span> My Goat Farms</span>
-    <span>One Platform for Complete Goat Farm &amp; Palai Management</span>
+  <footer class="foot">
+    <div class="wrap foot-inner">
+      <a class="wordmark small" href="#top"><img src="assets/img/logo.png" alt="" width="28" height="28"><span>My Goat Farms</span></a>
+      <p>Goat farm &amp; Palai management, from Kamrej, Surat.</p>
+      <p>© <span id="year">2026</span> My Goat Farms</p>
+    </div>
   </footer>
 
-  <script type="module" src="assets/js/main.js"></script>
+  <script type="module" src="assets/js/main.js?v=20261007"></script>
 </body>
 </html>
