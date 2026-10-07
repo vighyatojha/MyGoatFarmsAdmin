@@ -187,17 +187,17 @@
           <div class="form-row">
             <div class="field">
               <label class="field-label" for="enqName">Name</label>
-              <input id="enqName" class="input" maxlength="100" required>
+              <input id="enqName" class="input" maxlength="100" autocomplete="name" required>
             </div>
             <div class="field">
               <label class="field-label" for="enqEmail">Email</label>
-              <input id="enqEmail" class="input" type="email" maxlength="254" required>
+              <input id="enqEmail" class="input" type="email" maxlength="254" autocomplete="email" inputmode="email" required>
             </div>
           </div>
           <div class="form-row">
             <div class="field">
               <label class="field-label" for="enqPhone">Phone (optional)</label>
-              <input id="enqPhone" class="input" maxlength="30">
+              <input id="enqPhone" class="input" type="tel" maxlength="20" autocomplete="tel" inputmode="tel" placeholder="98765 43210">
             </div>
             <div class="field">
               <label class="field-label" for="enqSubject">Subject</label>
@@ -207,11 +207,12 @@
           <div class="field">
             <label class="field-label" for="enqMessage">Message</label>
             <textarea id="enqMessage" class="input" maxlength="2000" required></textarea>
+            <p class="field-hint" id="enqMessageCount">0 / 2000</p>
           </div>
           <!-- Honeypot field: real visitors never fill this in -->
           <div style="position:absolute; left:-9999px;" aria-hidden="true">
-            <label for="enqCompany">Leave blank</label>
-            <input id="enqCompany" name="company" tabindex="-1" autocomplete="off">
+            <label for="enqCompany">Leave this field empty</label>
+            <input id="enqCompany" name="mgf_hp_check" tabindex="-1" autocomplete="off">
           </div>
 
           <div id="enquiryStatus" class="form-error" role="alert"></div>

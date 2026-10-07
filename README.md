@@ -8,25 +8,56 @@ single new field (`subscriptionInfo`) and a few brand-new collections that
 your app has never used.
 
 ```
-mygoatfarms/
-├── firestore.rules         ← YOUR real app's rules, unchanged, plus admin
-│                             additions clearly marked "ADMIN ADDITION"
-└── frontend/                ← the whole admin+public website — upload this
-    ├── index.html            public landing page + Contact/Enquiry form
-    ├── 404.html, robots.txt
-    ├── admin/                index.html (hidden login), dashboard.html, farms.html,
-    │                         subscriptions.html, payments.html, earnings.html,
-    │                         enquiries.html, reports.html, settings.html
-    └── assets/
-        ├── css/              styles.css, admin.css, landing.css
-        ├── js/
-        │   ├── firebase-config.js   ← put YOUR Firebase project config here
-        │   ├── db.js                ← all Firestore reads/writes live here
-        │   ├── auth-guard.js        ← confirms a visitor is a signed-in admin
-        │   ├── admin-shell.js       ← shared sidebar/topbar for every admin page
-        │   └── *.js                 ← one file per page (farms.js, enquiries.js, …)
-        ├── img/, fonts/
+MyGoatFarmsAdmin/
+├── firestore.rules          your app's rules + admin additions and validators
+├── index.html               public landing page + Contact form
+├── 404.html, robots.txt
+├── admin/
+│   ├── index.html           the whole admin panel: sign-in + every section
+│   └── *.html               old page addresses; they forward to admin/#/<section>
+└── assets/
+    ├── css/                 admin-app.css (admin), styles.css + landing.css (public)
+    └── js/
+        ├── firebase-config.js   your Firebase web config
+        ├── db.js                every Firestore read/write
+        ├── validators.js        form rules shared by every form and db.js
+        ├── admin-app.js         the admin panel (router, live data, all sections)
+        └── main.js              landing page Contact form
 ```
+
+## How the admin panel loads
+
+The admin panel is one page (`admin/index.html`). Sections live at
+`admin/#/dashboard`, `#/farms`, `#/subscriptions`, `#/payments`,
+`#/earnings`, `#/enquiries`, `#/reports` and `#/settings`.
+
+- Farms, payments and enquiries are each read **once** through a live
+  Firestore listener when you sign in. Every section draws from that same
+  copy, so switching sections never reloads the page or re-fetches data,
+  and changes (yours or a new enquiry) appear everywhere straight away.
+- Partner/goat counts cost several reads per farm, so they are fetched once
+  per farm and only re-read when you press **Refresh counts**.
+- Page colours and the app shell are painted before any script runs, so
+  there is no white flash. Returning admins see the shell with loading
+  placeholders while Firebase confirms the session.
+
+## Validation
+
+`assets/js/validators.js` holds the rules for every form: the Contact
+form, sign-in, approve/renew, reject/block reasons, subscription plans
+and the support contact. Errors show under each field. `db.js` runs the
+same rules again before writing, and `firestore.rules` enforces the hard
+limits on the server (marked `VALIDATOR`), including:
+
+- farm owners can no longer change their own `subscriptionInfo`
+  (approval, block or expiry) from the app;
+- enquiries must have a valid email, bounded fields and an ISO timestamp;
+- subscription payments have a fixed shape, can only change status
+  afterwards, and can't be deleted.
+
+**Publish the updated `firestore.rules`** in the Firebase console after
+deploying this version.
+
 
 ## How this fits your real database
 
@@ -95,45 +126,28 @@ Skip anything you've already done for the Flutter app — same project:
 3. Firestore database already exists (yours).
 4. Web app config: Project settings (⚙) → General → "Your apps" → add a
    **Web app** (`</>`) if there isn't one yet → copy the `firebaseConfig`
-   object → paste it into `frontend/assets/js/firebase-config.js`,
+   object → paste it into `assets/js/firebase-config.js`,
    replacing the `YOUR_...` placeholders. This is the only file you need
    to edit before deploying.
 
 ## Deploying (any static host)
 
-- **Firebase Hosting**: `firebase init hosting` (public directory =
-  `frontend`), then `firebase deploy`.
-- **Netlify / Vercel**: drag-and-drop the `frontend` folder, or connect the
-  repo with publish directory `frontend`.
-- **Any regular web host / cPanel**: upload the *contents* of `frontend/`
+- **Firebase Hosting**: `firebase init hosting` (public directory = `.`), then `firebase deploy`.
+- **Netlify / Vercel**: drag-and-drop the repo folder, or connect the repo
+  with the repo root as the publish directory.
+- **Any regular web host / cPanel**: upload the contents of this repo
   to your domain's public folder. No build step, no Node, nothing to
   install or run — ever.
 
-## Restructure progress
+## Going back to the previous version
 
-**Done**
-- Merged `firestore.rules`: real app rules untouched, admin additions
-  clearly marked, `subscriptionInfo`-scoped write access for admins
-- Farm lifecycle: Pending → Approve (subscription countdown starts on the
-  approval date) / Reject, plus Block, Unblock and Renew, all writing only
-  `subscriptionInfo` — `farms.html` / `farms.js`
-- Removed "Add Farm" and "Delete Farm" from the admin panel — not
-  compatible with how farms are actually created, and deleting a farm doc
-  would orphan every subcollection under it
-- Payments recorded automatically on approve/renew into `subscriptionPayments`
-  (kept separate from your `farms/{farmId}/payments`), plus an Earnings
-  summary — `payments.html`, `earnings.html`
-- One-way visitor → admin Enquiry inbox with bulk mark-read/delete
-- Configurable subscription plans (`adminSettings/subscriptionPlans`) —
-  `settings.html`
-- Reports page with CSV export (Farm Report no longer date-filterable,
-  since `FarmModel` has no registration-date field to filter on)
-- Public Contact form writes straight to Firestore, validated by rules
+The version before the single-page redesign is saved on the branch
+`backup-before-spa-redesign-20261007`. To restore it on `main`:
 
-**Still worth doing next**
-- Consider Firebase **App Check** to cut down on spam/abuse of the public
-  enquiry form, since there's no server-side rate limiter.
-- If you'd like the Farms page to show farm size/stock, that data lives in
-  the `ownFarmGoats` / `tradingGoats` / `stockItems` subcollections, not on
-  the farm document itself — would need a per-farm count query, which is
-  more expensive at scale than the current single list query.
+```
+git checkout main
+git reset --hard backup-before-spa-redesign-20261007
+git push --force-with-lease origin main
+```
+
+(Re-publish the old `firestore.rules` from that branch too if you roll back.)

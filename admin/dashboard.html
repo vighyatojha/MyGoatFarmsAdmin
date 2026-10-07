@@ -2,57 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
-  <title>Dashboard · My Goat Farms Admin</title>
-  <link rel="icon" type="image/png" href="../assets/img/favicon.png">
-  <link rel="stylesheet" href="../assets/css/styles.css">
-  <link rel="stylesheet" href="../assets/css/admin.css">
+  <title>My Goat Farms Admin</title>
+  <!-- The admin panel is now one page. Old links land on the right section. -->
+  <style>html,body{margin:0;background:#f2f5ec}</style>
+  <script>location.replace('./#/dashboard');</script>
+  <noscript><meta http-equiv="refresh" content="0; url=./#/dashboard"></noscript>
 </head>
-<body class="admin-page">
-  <aside class="sidebar" id="sidebarRoot"></aside>
-
-  <main class="admin-main">
-    <header class="admin-top" id="topbarRoot"></header>
-
-    <section class="summary-grid" aria-label="Summary">
-      <div class="summary-card">
-        <div class="summary-card-header"><span>Pending Approval</span><div class="icon-chip orange"><svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div>
-        <strong id="statPending">0</strong><small>Awaiting review</small>
-      </div>
-      <div class="summary-card">
-        <div class="summary-card-header"><span>Active Farms</span><div class="icon-chip"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div></div>
-        <strong id="statActive">0</strong><small>Subscription active</small>
-      </div>
-      <div class="summary-card">
-        <div class="summary-card-header"><span>Blocked Farms</span><div class="icon-chip"><svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></div></div>
-        <strong id="statBlocked">0</strong><small>Access suspended</small>
-      </div>
-      <div class="summary-card">
-        <div class="summary-card-header"><span>Total Revenue</span><div class="icon-chip purple"><svg class="svg-icon" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div></div>
-        <strong id="statRevenue">₹0</strong><small>From paid subscriptions</small>
-      </div>
-    </section>
-
-    <section class="panel" style="margin-bottom:24px;">
-      <div class="panel-head">
-        <div><h2>New Enquiries</h2><p>Latest messages from the public Contact form.</p></div>
-        <a class="btn btn-outline btn-sm" href="./enquiries.html">View all</a>
-      </div>
-      <div class="activity-list" id="enquiryActivity"><p class="empty-row">Loading…</p></div>
-    </section>
-
-    <section class="panel">
-      <div class="panel-head">
-        <div><h2>Recent Farm Activity</h2><p>Newest registrations and subscription changes.</p></div>
-        <a class="btn btn-outline btn-sm" href="./farms.html">Manage farms</a>
-      </div>
-      <div class="activity-list" id="farmActivity"><p class="empty-row">Loading…</p></div>
-    </section>
-  </main>
-
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-
-  <script type="module" src="../assets/js/dashboard.js"></script>
-</body>
+<body><p style="font-family:sans-serif;padding:24px"><a href="./#/dashboard">Open the admin panel</a></p></body>
 </html>

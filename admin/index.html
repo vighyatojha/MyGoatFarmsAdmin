@@ -4,48 +4,309 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
-  <title>Admin Login · My Goat Farms</title>
+  <meta name="theme-color" content="#173d24">
+  <title>Admin · My Goat Farms</title>
   <link rel="icon" type="image/png" href="../assets/img/favicon.png">
-  <link rel="stylesheet" href="../assets/css/styles.css">
-  <link rel="stylesheet" href="../assets/css/admin.css">
+  <link rel="preload" href="../assets/fonts/Poppins-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="../assets/fonts/Baloo2-Bold.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="modulepreload" href="../assets/js/firebase-config.js">
+  <link rel="modulepreload" href="../assets/js/db.js">
+  <link rel="modulepreload" href="../assets/js/validators.js">
+  <!-- Painted before any stylesheet or script arrives, so there is never a
+       white flash: page colours and the right first screen are set here. -->
+  <style>
+    html, body { margin: 0; background: #f2f5ec; color: #1d2a1f; }
+    @media (min-width: 1025px) { body[data-screen="app"] { background: linear-gradient(90deg, #173d24 0 264px, #f2f5ec 264px); } }
+    body[data-screen="login"] #app, body[data-screen="app"] #login { display: none; }
+  </style>
+  <script>
+    // Choose the first screen synchronously: someone who signed in before
+    // sees the app shell (with loading placeholders) straight away.
+    (function () {
+      var hint = null;
+      try { hint = localStorage.getItem('mgf.admin.email'); } catch (e) {}
+      document.documentElement.dataset.hint = hint ? '1' : '';
+    })();
+  </script>
+  <link rel="stylesheet" href="../assets/css/admin-app.css?v=20261007">
 </head>
-<body class="auth-page">
-  <div class="auth-shell">
-    <a class="brand auth-brand" href="../index.html">
-      <span class="logo-ring lg"><img src="../assets/img/logo.png" alt="" width="48" height="48"></span>
-      <span class="brand-name brand-lg">My Goat Farms</span>
-    </a>
+<body>
+  <script>document.body.dataset.screen = document.documentElement.dataset.hint ? 'app' : 'login';</script>
 
-    <div class="auth-card">
-      <span class="eyebrow">ADMIN PORTAL</span>
-      <h1>Welcome back</h1>
-      <p>Sign in to manage My Goat Farms.</p>
+  <!-- ===================== SIGN IN ===================== -->
+  <section id="login" class="login" aria-labelledby="loginTitle">
+    <div class="login-art" aria-hidden="true">
+      <img src="../assets/img/logo.png" alt="" width="96" height="96">
+      <p class="login-art-line">Approvals, renewals and enquiries for every farm on My Goat Farms.</p>
+    </div>
+    <div class="login-panel">
+      <a class="wordmark" href="../index.html"><img src="../assets/img/logo.png" alt="" width="36" height="36"><span>My Goat Farms</span></a>
+      <h1 id="loginTitle">Sign in to the admin panel</h1>
+      <p class="muted">Only accounts added as admins in Firebase can sign in.</p>
 
       <form id="loginForm" novalidate>
         <div class="field">
-          <label class="field-label" for="email">Email Address</label>
-          <input id="email" class="input" type="email" autocomplete="username" required>
+          <label class="field-label" for="loginEmail">Email</label>
+          <input id="loginEmail" class="input" type="email" autocomplete="username" inputmode="email" required>
         </div>
-
         <div class="field">
-          <label class="field-label" for="password">Password</label>
+          <label class="field-label" for="loginPassword">Password</label>
           <div class="input-wrap">
-            <input id="password" class="input has-action" type="password" autocomplete="current-password" required>
+            <input id="loginPassword" class="input has-action" type="password" autocomplete="current-password" required>
             <button type="button" id="togglePassword" class="input-action" aria-label="Show password" aria-pressed="false">
-              <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg viewBox="0 0 24 24" class="ico"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
           </div>
         </div>
-
-        <div id="loginError" class="form-error" role="alert"></div>
-
-        <button id="loginBtn" class="btn btn-primary btn-full" type="submit">Sign in</button>
+        <p id="loginError" class="form-alert" role="alert"></p>
+        <button id="loginBtn" class="btn btn-primary btn-block" type="submit">Sign in</button>
       </form>
+      <a class="quiet-link" href="../index.html">Back to the main website</a>
     </div>
+  </section>
 
-    <a class="back-link" href="../index.html">← Back to main website</a>
+  <!-- ===================== APP ===================== -->
+  <div id="app" class="app">
+    <aside class="sidebar" id="sidebar" aria-label="Admin navigation">
+      <div class="sidebar-head">
+        <a class="wordmark wordmark-light" href="#/dashboard"><img src="../assets/img/logo.png" alt="" width="34" height="34"><span>My Goat Farms</span></a>
+        <button class="icon-btn sidebar-close" id="sidebarClose" type="button" aria-label="Close navigation">
+          <svg viewBox="0 0 24 24" class="ico"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <nav class="nav" id="nav">
+        <a class="nav-link" href="#/dashboard" data-view="dashboard">
+          <svg viewBox="0 0 24 24" class="ico"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+          <span>Dashboard</span>
+        </a>
+        <a class="nav-link" href="#/farms" data-view="farms">
+          <svg viewBox="0 0 24 24" class="ico"><path d="M3 10.5 12 3l9 7.5V20a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 20z"/><path d="M9 21.5V13h6v8.5"/></svg>
+          <span>Farms</span><b class="nav-count" data-count="pending" hidden></b>
+        </a>
+        <a class="nav-link" href="#/subscriptions" data-view="subscriptions">
+          <svg viewBox="0 0 24 24" class="ico"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <span>Subscriptions</span><b class="nav-count warn" data-count="expiring" hidden></b>
+        </a>
+        <a class="nav-link" href="#/payments" data-view="payments">
+          <svg viewBox="0 0 24 24" class="ico"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg>
+          <span>Payments</span>
+        </a>
+        <a class="nav-link" href="#/earnings" data-view="earnings">
+          <svg viewBox="0 0 24 24" class="ico"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+          <span>Earnings</span>
+        </a>
+        <a class="nav-link" href="#/enquiries" data-view="enquiries">
+          <svg viewBox="0 0 24 24" class="ico"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          <span>Enquiries</span><b class="nav-count" data-count="newEnquiries" hidden></b>
+        </a>
+        <a class="nav-link" href="#/reports" data-view="reports">
+          <svg viewBox="0 0 24 24" class="ico"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8"/></svg>
+          <span>Reports</span>
+        </a>
+        <a class="nav-link" href="#/settings" data-view="settings">
+          <svg viewBox="0 0 24 24" class="ico"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span>Settings</span>
+        </a>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="me">
+          <span class="me-avatar" id="meAvatar">A</span>
+          <span class="me-text"><span class="me-email" id="meEmail">Checking sign-in…</span><span class="me-role">Administrator</span></span>
+        </div>
+        <button class="nav-link signout" id="signOut" type="button">
+          <svg viewBox="0 0 24 24" class="ico"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+          <span>Sign out</span>
+        </button>
+      </div>
+    </aside>
+    <div class="scrim" id="scrim" hidden></div>
+
+    <main class="main" id="main">
+      <header class="topbar">
+        <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar">
+          <svg viewBox="0 0 24 24" class="ico"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div class="topbar-copy">
+          <h1 id="viewTitle" tabindex="-1">Dashboard</h1>
+          <p id="viewSubtitle" class="muted">What needs your attention today.</p>
+        </div>
+        <div class="topbar-actions" id="topbarActions"></div>
+      </header>
+      <div class="banner" id="banner" role="status" hidden></div>
+
+      <!-- DASHBOARD -->
+      <section class="view" data-view="dashboard" hidden>
+        <div class="kpis" id="dashKpis"></div>
+        <div class="dash-grid">
+          <article class="panel attention">
+            <header class="panel-head"><h2>Needs attention</h2><p class="muted">Approvals, expiring subscriptions and unread messages.</p></header>
+            <ul class="queue" id="dashQueue"></ul>
+          </article>
+          <article class="panel">
+            <header class="panel-head row"><div><h2>Recent farm activity</h2><p class="muted">New sign-ups and subscription changes.</p></div><a class="btn btn-quiet btn-sm" href="#/farms">Open farms</a></header>
+            <ul class="feed" id="dashFarms"></ul>
+          </article>
+          <article class="panel">
+            <header class="panel-head row"><div><h2>Latest enquiries</h2><p class="muted">From the Contact form on the website.</p></div><a class="btn btn-quiet btn-sm" href="#/enquiries">Open inbox</a></header>
+            <ul class="feed" id="dashEnquiries"></ul>
+          </article>
+        </div>
+      </section>
+
+      <!-- FARMS -->
+      <section class="view" data-view="farms" hidden>
+        <div class="toolbar">
+          <label class="search"><svg viewBox="0 0 24 24" class="ico"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="farmSearch" type="search" placeholder="Search name, owner, mobile or farm ID" aria-label="Search farms"></label>
+          <div class="chips" id="farmChips" role="group" aria-label="Filter by status"></div>
+        </div>
+        <div class="kpis compact" id="farmKpis"></div>
+        <div class="list" id="farmList" aria-live="polite"></div>
+      </section>
+
+      <!-- SUBSCRIPTIONS -->
+      <section class="view" data-view="subscriptions" hidden>
+        <div class="toolbar">
+          <label class="search"><svg viewBox="0 0 24 24" class="ico"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="subSearch" type="search" placeholder="Search farm or plan" aria-label="Search subscriptions"></label>
+          <div class="chips" id="subChips" role="group" aria-label="Filter subscriptions"></div>
+        </div>
+        <div class="table-wrap"><table class="table">
+          <thead><tr><th>Farm</th><th>Plan</th><th>Started</th><th>Expires</th><th class="w-runway">Time left</th><th><span class="sr-only">Actions</span></th></tr></thead>
+          <tbody id="subTable"></tbody>
+        </table></div>
+      </section>
+
+      <!-- PAYMENTS -->
+      <section class="view" data-view="payments" hidden>
+        <div class="kpis compact" id="payKpis"></div>
+        <div class="toolbar">
+          <label class="search"><svg viewBox="0 0 24 24" class="ico"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="paySearch" type="search" placeholder="Search farm, plan or reference" aria-label="Search payments"></label>
+          <div class="chips" id="payChips" role="group" aria-label="Filter by payment status"></div>
+        </div>
+        <div class="table-wrap"><table class="table">
+          <thead><tr><th>Farm</th><th>Plan</th><th class="num">Amount</th><th>Type</th><th>Paid on</th><th>Reference</th><th>Status</th></tr></thead>
+          <tbody id="payTable"></tbody>
+        </table></div>
+      </section>
+
+      <!-- EARNINGS -->
+      <section class="view" data-view="earnings" hidden>
+        <div class="kpis" id="earnKpis"></div>
+        <div class="earn-grid">
+          <article class="panel">
+            <header class="panel-head"><h2>Last 12 months</h2><p class="muted">Paid subscriptions, by the month they were paid.</p></header>
+            <div class="columns" id="earnMonths"></div>
+          </article>
+          <article class="panel">
+            <header class="panel-head"><h2>By plan</h2><p class="muted">All-time paid amount for each plan.</p></header>
+            <div class="bars" id="earnPlans"></div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ENQUIRIES -->
+      <section class="view" data-view="enquiries" hidden>
+        <div class="toolbar">
+          <label class="search"><svg viewBox="0 0 24 24" class="ico"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="enqSearch" type="search" placeholder="Search name, email or subject" aria-label="Search enquiries"></label>
+          <div class="chips" id="enqChips" role="group" aria-label="Filter enquiries"></div>
+        </div>
+        <div class="inbox">
+          <div class="inbox-list panel">
+            <div class="inbox-bar">
+              <label class="check"><input type="checkbox" id="enqAll"><span id="enqSelLabel">Select all</span></label>
+              <div class="inbox-actions" id="enqBulk" hidden>
+                <button class="btn btn-quiet btn-sm" id="enqMarkRead" type="button">Mark read</button>
+                <button class="btn btn-quiet btn-sm" id="enqMarkNew" type="button">Mark unread</button>
+                <button class="btn btn-danger btn-sm" id="enqDelete" type="button">Delete</button>
+              </div>
+            </div>
+            <ul class="inbox-items" id="enqList"></ul>
+          </div>
+          <article class="inbox-detail panel" id="enqDetail" aria-live="polite"></article>
+        </div>
+      </section>
+
+      <!-- REPORTS -->
+      <section class="view" data-view="reports" hidden>
+        <div class="report-picker" id="reportTiles" role="radiogroup" aria-label="Report type"></div>
+        <form class="panel report-form" id="reportForm" novalidate>
+          <div class="field"><label class="field-label" for="reportFrom">From</label><input class="input" type="date" id="reportFrom"></div>
+          <div class="field"><label class="field-label" for="reportTo">To</label><input class="input" type="date" id="reportTo"></div>
+          <div class="report-go">
+            <button class="btn btn-quiet" type="button" id="reportPreview">Preview</button>
+            <button class="btn btn-primary" type="submit" id="reportDownload">Download CSV</button>
+          </div>
+          <p class="field-hint" id="reportHint">Choose a report. Leave the dates empty to include everything.</p>
+        </form>
+        <div class="table-wrap" id="reportPreviewWrap" hidden><table class="table"><thead id="reportHead"></thead><tbody id="reportBody"></tbody></table></div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section class="view" data-view="settings" hidden>
+        <article class="panel">
+          <header class="panel-head row"><div><h2>Subscription plans</h2><p class="muted">These appear in the Approve and Renew forms.</p></div><button class="btn btn-quiet btn-sm" id="addPlan" type="button">Add plan</button></header>
+          <div class="plan-grid" id="planGrid"></div>
+          <div class="panel-foot"><span class="field-hint" id="planHint"></span><button class="btn btn-primary" id="savePlans" type="button">Save plans</button></div>
+        </article>
+        <article class="panel">
+          <header class="panel-head"><h2>Support contact</h2><p class="muted">Shown in the app to farmers who are pending, rejected or blocked.</p></header>
+          <form id="contactForm" class="form-grid" novalidate>
+            <div class="field"><label class="field-label" for="contactName">Name</label><input class="input" id="contactName" maxlength="100" autocomplete="organization"></div>
+            <div class="field"><label class="field-label" for="contactEmail">Email</label><input class="input" id="contactEmail" type="email" maxlength="254" required></div>
+            <div class="field"><label class="field-label" for="contactPhone">Phone</label><input class="input" id="contactPhone" type="tel" maxlength="20" inputmode="tel" placeholder="98765 43210"></div>
+            <div class="form-actions"><button class="btn btn-primary" id="saveContact" type="submit">Save contact</button></div>
+          </form>
+        </article>
+        <article class="panel">
+          <header class="panel-head"><h2>Your account</h2><p class="muted">Admins are added and removed in the Firebase console.</p></header>
+          <p class="account-line">Signed in as <strong id="accountEmail">—</strong></p>
+        </article>
+      </section>
+    </main>
   </div>
 
-  <script type="module" src="../assets/js/admin-login.js"></script>
+  <!-- ===================== DIALOGS ===================== -->
+  <dialog class="dialog" id="subDialog" aria-labelledby="subTitle">
+    <form id="subForm" method="dialog" novalidate>
+      <header class="dialog-head"><div><h2 id="subTitle">Approve farm</h2><p class="muted" id="subNote"></p></div><button class="icon-btn" type="button" data-close aria-label="Close"><svg viewBox="0 0 24 24" class="ico"><path d="M6 6l12 12M18 6 6 18"/></svg></button></header>
+      <div class="dialog-body form-grid">
+        <div class="field span-2"><label class="field-label" for="subPlan">Plan</label><select class="select" id="subPlan" required></select></div>
+        <div class="field"><label class="field-label" for="subDuration">Duration (days)</label><input class="input" id="subDuration" type="number" min="1" max="3650" step="1" inputmode="numeric" required></div>
+        <div class="field"><label class="field-label" for="subAmount">Amount (₹)</label><input class="input" id="subAmount" type="number" min="0" max="1000000" step="1" inputmode="numeric" required></div>
+        <div class="field"><label class="field-label" for="subPayStatus">Payment status</label><select class="select" id="subPayStatus"><option>Paid</option><option>Pending</option><option>Failed</option><option>Refunded</option></select></div>
+        <div class="field"><label class="field-label" for="subPayDate">Payment date</label><input class="input" id="subPayDate" type="date"></div>
+        <div class="field span-2"><label class="field-label" for="subPayRef">Payment reference (optional)</label><input class="input" id="subPayRef" maxlength="120" placeholder="UPI / UTR / receipt number"></div>
+        <p class="span-2 expiry-preview" id="subPreview"></p>
+      </div>
+      <footer class="dialog-foot"><button class="btn btn-quiet" type="button" data-close>Cancel</button><button class="btn btn-primary" type="submit" id="subSave">Approve farm</button></footer>
+    </form>
+  </dialog>
+
+  <dialog class="dialog" id="reasonDialog" aria-labelledby="reasonTitle">
+    <form id="reasonForm" method="dialog" novalidate>
+      <header class="dialog-head"><div><h2 id="reasonTitle">Block farm</h2><p class="muted" id="reasonNote"></p></div><button class="icon-btn" type="button" data-close aria-label="Close"><svg viewBox="0 0 24 24" class="ico"><path d="M6 6l12 12M18 6 6 18"/></svg></button></header>
+      <div class="dialog-body">
+        <div class="field"><label class="field-label" for="reasonText">Reason (the farmer sees this)</label><textarea class="input" id="reasonText" rows="4" maxlength="300" required></textarea><p class="field-hint" id="reasonCount">0 / 300</p></div>
+      </div>
+      <footer class="dialog-foot"><button class="btn btn-quiet" type="button" data-close>Cancel</button><button class="btn btn-danger" type="submit" id="reasonSave">Block farm</button></footer>
+    </form>
+  </dialog>
+
+  <dialog class="dialog dialog-wide" id="farmDialog" aria-labelledby="farmTitle">
+    <header class="dialog-head"><div><h2 id="farmTitle">Farm</h2><p class="muted" id="farmSub"></p></div><button class="icon-btn" type="button" data-close aria-label="Close"><svg viewBox="0 0 24 24" class="ico"><path d="M6 6l12 12M18 6 6 18"/></svg></button></header>
+    <div class="dialog-body" id="farmBody"></div>
+    <footer class="dialog-foot" id="farmFoot"></footer>
+  </dialog>
+
+  <dialog class="dialog" id="confirmDialog" aria-labelledby="confirmTitle">
+    <form method="dialog">
+      <header class="dialog-head"><div><h2 id="confirmTitle">Are you sure?</h2></div></header>
+      <div class="dialog-body"><p id="confirmText"></p></div>
+      <footer class="dialog-foot"><button class="btn btn-quiet" value="cancel" type="submit">Cancel</button><button class="btn btn-danger" value="ok" type="submit" id="confirmOk">Confirm</button></footer>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="../assets/js/admin-app.js?v=20261007"></script>
 </body>
 </html>

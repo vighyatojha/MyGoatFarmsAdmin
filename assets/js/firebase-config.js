@@ -4,7 +4,6 @@
 // Actual security comes from Firebase Authentication + the rules in firestore.rules.
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js';
 import { getAuth } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js';
-import { getFunctions } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-functions.js';
 import {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
 } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js';
@@ -21,16 +20,11 @@ const firebaseConfig = {
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const functions = getFunctions(app);
 
-// Every admin page here is a full browser navigation (separate .html file),
-// not an SPA route change — so a plain getFirestore()'s memory-only cache
-// gets thrown away on every single click between pages, forcing a cold
-// re-fetch of the whole collection each time. persistentLocalCache backs
-// the cache with IndexedDB instead, so it survives the reload: repeat visits
-// paint from cache instantly while Firestore syncs any changes in the
-// background. persistentMultipleTabManager lets it work correctly even if
-// the admin has more than one tab of this panel open at once.
+// The admin panel is a single page, so live listeners survive navigation.
+// persistentLocalCache still backs the cache with IndexedDB so a fresh visit
+// paints from cache instantly while Firestore syncs in the background;
+// persistentMultipleTabManager keeps it correct with several tabs open.
 export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
 });

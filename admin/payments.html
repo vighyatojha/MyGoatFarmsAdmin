@@ -2,59 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
-  <title>Payments · My Goat Farms Admin</title>
-  <link rel="icon" type="image/png" href="../assets/img/favicon.png">
-  <link rel="stylesheet" href="../assets/css/styles.css">
-  <link rel="stylesheet" href="../assets/css/admin.css">
+  <title>My Goat Farms Admin</title>
+  <!-- The admin panel is now one page. Old links land on the right section. -->
+  <style>html,body{margin:0;background:#f2f5ec}</style>
+  <script>location.replace('./#/payments');</script>
+  <noscript><meta http-equiv="refresh" content="0; url=./#/payments"></noscript>
 </head>
-<body class="admin-page">
-  <aside class="sidebar" id="sidebarRoot"></aside>
-
-  <main class="admin-main">
-    <header class="admin-top" id="topbarRoot"></header>
-
-    <section class="summary-grid" aria-label="Summary">
-      <div class="summary-card">
-        <div class="summary-card-header"><span>Total Payments</span><div class="icon-chip teal"><svg class="svg-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div></div>
-        <strong id="statCount">0</strong><small>Records on file</small>
-      </div>
-      <div class="summary-card">
-        <div class="summary-card-header"><span>Paid</span><div class="icon-chip"><svg class="svg-icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div></div>
-        <strong id="statPaid">0</strong><small>Successful payments</small>
-      </div>
-      <div class="summary-card">
-        <div class="summary-card-header"><span>Pending / Failed</span><div class="icon-chip orange"><svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div>
-        <strong id="statPendingFailed">0</strong><small>Needs follow-up</small>
-      </div>
-      <div class="summary-card">
-        <div class="summary-card-header"><span>Total Amount</span><div class="icon-chip purple"><svg class="svg-icon" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div></div>
-        <strong id="statAmount">₹0</strong><small>Paid payments only</small>
-      </div>
-    </section>
-
-    <section class="panel">
-      <div class="panel-head">
-        <div><h2>Payment Records</h2><p>Created automatically when a farm is approved or a subscription is renewed.</p></div>
-      </div>
-
-      <div class="toolbar toolbar-stacked">
-        <input id="search" class="input" type="search" placeholder="Search by farm, plan or reference…" aria-label="Search payments">
-        <div class="filter-pills" id="statusPills"></div>
-      </div>
-
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Payment ID</th><th>Farm</th><th>Plan</th><th>Amount</th><th>Type</th><th>Date</th><th>Reference</th><th>Status</th></tr></thead>
-          <tbody id="paymentTable"></tbody>
-        </table>
-      </div>
-    </section>
-  </main>
-
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-
-  <script type="module" src="../assets/js/payments.js"></script>
-</body>
+<body><p style="font-family:sans-serif;padding:24px"><a href="./#/payments">Open the admin panel</a></p></body>
 </html>

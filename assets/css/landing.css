@@ -46,3 +46,8 @@
   .manage-list { font-size: 22px; white-space: normal; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+/* Inline validation */
+.field-hint { margin-top: 6px; font-size: 12px; color: var(--text-grey); text-align: right; }
+.field-hint.near-limit { color: var(--warning); }
+.enquiry-form .field-error:empty { display: none; }

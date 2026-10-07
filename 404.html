@@ -4,21 +4,30 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex">
+  <!-- GitHub Pages project sites live under /<repo>/, so absolute "/" links
+       would point at the wrong place. Work out the site root first. -->
+  <script>
+    (function () {
+      var seg = location.pathname.split('/')[1];
+      var root = /github\.io$/.test(location.hostname) && seg ? '/' + seg + '/' : '/';
+      document.write('<base href="' + root + '">');
+    })();
+  </script>
   <title>Page not found · My Goat Farms</title>
-  <link rel="icon" type="image/png" href="/assets/img/favicon.png">
-  <link rel="stylesheet" href="/assets/css/styles.css">
-  <link rel="stylesheet" href="/assets/css/landing.css">
+  <link rel="icon" type="image/png" href="assets/img/favicon.png">
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <link rel="stylesheet" href="assets/css/landing.css">
 </head>
 <body class="auth-page">
   <div class="auth-shell">
-    <a class="brand auth-brand" href="/">
-      <span class="logo-ring lg"><img src="/assets/img/logo.png" alt="" width="48" height="48"></span>
+    <a class="brand auth-brand" href="./">
+      <span class="logo-ring lg"><img src="assets/img/logo.png" alt="" width="48" height="48"></span>
       <span class="brand-name">My Goat Farms</span>
     </a>
     <div class="auth-card">
       <h1>Page not found</h1>
       <p>The page you are looking for doesn't exist or has moved.</p>
-      <a class="btn btn-primary btn-full" href="/">Back to home</a>
+      <a class="btn btn-primary btn-full" href="./">Back to home</a>
     </div>
   </div>
 </body>

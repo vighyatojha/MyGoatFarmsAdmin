@@ -2,69 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
-  <title>Settings · My Goat Farms Admin</title>
-  <link rel="icon" type="image/png" href="../assets/img/favicon.png">
-  <link rel="stylesheet" href="../assets/css/styles.css">
-  <link rel="stylesheet" href="../assets/css/admin.css">
+  <title>My Goat Farms Admin</title>
+  <!-- The admin panel is now one page. Old links land on the right section. -->
+  <style>html,body{margin:0;background:#f2f5ec}</style>
+  <script>location.replace('./#/settings');</script>
+  <noscript><meta http-equiv="refresh" content="0; url=./#/settings"></noscript>
 </head>
-<body class="admin-page">
-  <aside class="sidebar" id="sidebarRoot"></aside>
-
-  <main class="admin-main">
-    <header class="admin-top" id="topbarRoot"></header>
-
-    <section class="panel">
-      <div class="panel-head">
-        <div><h2>Subscription Plans</h2><p>These plans appear in the Approve / Renew dropdowns across the admin panel.</p></div>
-        <button id="addPlan" class="btn btn-primary btn-sm" type="button">+ Add Plan</button>
-      </div>
-      <div class="plan-grid" id="planGrid"></div>
-      <div style="padding: 0 26px 26px; display:flex; justify-content:flex-end;">
-        <button id="savePlans" class="btn btn-primary" type="button">Save Changes</button>
-      </div>
-    </section>
-
-    <section class="panel">
-      <div class="panel-head">
-        <div><h2>Farm Owner Support Contact</h2><p>These details appear in the app when a farm is pending, rejected, or blocked.</p></div>
-      </div>
-      <div class="form-row" style="padding: 0 26px 22px;">
-        <div class="field">
-          <label class="field-label" for="adminContactName">Support Name</label>
-          <input id="adminContactName" class="input" placeholder="My Goat Farms Support">
-        </div>
-        <div class="field">
-          <label class="field-label" for="adminContactPhone">Phone</label>
-          <input id="adminContactPhone" class="input" type="tel" placeholder="Admin phone number">
-        </div>
-      </div>
-      <div class="field" style="padding: 0 26px 22px;">
-        <label class="field-label" for="adminContactEmail">Email</label>
-        <input id="adminContactEmail" class="input" type="email" placeholder="admin@example.com">
-      </div>
-      <div style="padding: 0 26px 26px; display:flex; justify-content:flex-end;">
-        <button id="saveAdminContact" class="btn btn-primary" type="button">Save Support Contact</button>
-      </div>
-    </section>
-
-    <section class="panel">
-      <div class="panel-head"><div><h2>Admin Account</h2><p>Signed in as the account below.</p></div></div>
-      <div class="detail-grid" style="padding: 22px 26px;">
-        <div class="detail-item"><span>Email</span><strong id="accountEmail">—</strong></div>
-        <div class="detail-item"><span>Role</span><strong>Administrator</strong></div>
-      </div>
-      <p class="form-note" style="margin: 0 26px 24px;">
-        To add another admin: create the user in Firebase Console → Authentication, then add a document to the
-        <strong>admins</strong> collection in Firestore whose Document ID is that user's UID. To change your password,
-        use Firebase Console → Authentication, or add a "forgot password" flow later.
-      </p>
-    </section>
-  </main>
-
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-
-  <script type="module" src="../assets/js/settings.js?v=20260928-2"></script>
-</body>
+<body><p style="font-family:sans-serif;padding:24px"><a href="./#/settings">Open the admin panel</a></p></body>
 </html>
