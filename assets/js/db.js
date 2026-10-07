@@ -1,9 +1,9 @@
-import { db } from './firebase-config.js';
+import { db } from './firebase-config.js?v=20261007c';
 import {
   collection, doc, getDoc, getDocs, addDoc, setDoc, writeBatch, onSnapshot,
   query, where, getCountFromServer,
 } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js';
-import { assertValid, schemas, normalizePhone, check, rules, localDateKey } from './validators.js';
+import { assertValid, schemas, normalizePhone, check, rules, localDateKey } from './validators.js?v=20261007c';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const BATCH_LIMIT = 450; // Firestore allows 500 writes per batch

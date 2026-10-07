@@ -3,7 +3,7 @@
 // swaps which <section class="view"> is visible, so nothing reloads and the
 // data is already there when a section opens.
 
-import { auth } from './firebase-config.js';
+import { auth } from './firebase-config.js?v=20261007c';
 import {
   onAuthStateChanged, signInWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence,
 } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js';
@@ -12,8 +12,8 @@ import {
   approveFarm, renewFarm, rejectFarm, blockFarm, unblockFarm,
   markEnquiriesRead, markEnquiriesNew, deleteEnquiries,
   getPlans, savePlans, getAdminContact, saveAdminContact, DEFAULT_PLANS, localKeyOf,
-} from './db.js';
-import { bindForm, schemas, check, setFieldError, localDateKey, LIMITS } from './validators.js';
+} from './db.js?v=20261007c';
+import { bindForm, schemas, check, setFieldError, localDateKey, LIMITS } from './validators.js?v=20261007c';
 
 /* =====================================================================
    Small helpers
@@ -1135,7 +1135,7 @@ window.addEventListener('beforeunload', (e) => { if (settingsView.dirty || setti
 
 /* =====================================================================
    Sign-in page: the visiting goat
-   After 4 seconds the page behind blurs and a big goat rises into the
+   After 5 seconds the page behind blurs and a big goat rises into the
    middle of the screen. It says hi, peeks at the sign-in form, covers
    its eyes with its front legs, says it will come back later and goes.
    Click anywhere (or press Esc) to send it off early. It visits again
@@ -1194,7 +1194,7 @@ const peekGoat = {
     if (!this.stage || this.running) return;
     this.running = true;
     this.clear();
-    this.visit(4000);
+    this.visit(5000);  // 5 seconds after the sign-in page appears
   },
   stop() {
     this.running = false;
