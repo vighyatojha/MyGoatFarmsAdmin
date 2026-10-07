@@ -6,7 +6,7 @@ import {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
 } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js';
 
-import { firebaseConfig } from './firebase-options.js?v=20261007d';
+import { firebaseConfig } from './firebase-options.js?v=20261007e';
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);

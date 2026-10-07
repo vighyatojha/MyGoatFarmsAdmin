@@ -1,6 +1,6 @@
 // Public website. Kept light: no Firebase on page load. The enquiry
 // sender (Firestore Lite) is fetched only when the enquiry form opens.
-import { bindForm, schemas, LIMITS } from './validators.js?v=20261007d';
+import { bindForm, schemas, LIMITS } from './validators.js?v=20261007e';
 
 const $ = (id) => document.getElementById(id);
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -104,7 +104,7 @@ const counter = $('enqMessageCount');
 let sender = null; // the lazily loaded enquiry-submit.js module
 let lastTrigger = null;
 
-const loadSender = () => (sender ||= import('./enquiry-submit.js?v=20261007d'));
+const loadSender = () => (sender ||= import('./enquiry-submit.js?v=20261007e'));
 
 // Warm the sender as soon as someone shows interest in contacting us.
 document.querySelectorAll('[data-open-enquiry]').forEach((el) => {

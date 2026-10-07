@@ -8,8 +8,8 @@
 // The document shape must match the `enquiries` rule in firestore.rules.
 import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js';
 import { getFirestore, collection, addDoc } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-lite.js';
-import { firebaseConfig } from './firebase-options.js?v=20261007d';
-import { assertValid, schemas, normalizePhone } from './validators.js?v=20261007d';
+import { firebaseConfig } from './firebase-options.js?v=20261007e';
+import { assertValid, schemas, normalizePhone } from './validators.js?v=20261007e';
 
 const app = getApps()[0] || initializeApp(firebaseConfig);
 const db = getFirestore(app);

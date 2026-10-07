@@ -3,7 +3,7 @@
 // swaps which <section class="view"> is visible, so nothing reloads and the
 // data is already there when a section opens.
 
-import { auth } from './firebase-config.js?v=20261007d';
+import { auth } from './firebase-config.js?v=20261007e';
 import {
   onAuthStateChanged, signInWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence,
 } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js';
@@ -12,8 +12,8 @@ import {
   approveFarm, renewFarm, rejectFarm, blockFarm, unblockFarm,
   markEnquiriesRead, markEnquiriesNew, deleteEnquiries,
   getPlans, savePlans, getAdminContact, saveAdminContact, DEFAULT_PLANS, localKeyOf,
-} from './db.js?v=20261007d';
-import { bindForm, schemas, check, setFieldError, localDateKey, LIMITS } from './validators.js?v=20261007d';
+} from './db.js?v=20261007e';
+import { bindForm, schemas, check, setFieldError, localDateKey, LIMITS } from './validators.js?v=20261007e';
 
 /* =====================================================================
    Small helpers
