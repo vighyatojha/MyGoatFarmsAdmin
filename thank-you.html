@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Only reached after sending the enquiry form; keep it out of search results. -->
+  <meta name="robots" content="noindex, follow">
+  <title>Thank You · My Goat Farms</title>
+  <meta name="description" content="Thanks for your enquiry. The My Goat Farms team will reply by phone or email soon.">
+  <meta name="theme-color" content="#173d24">
+  <meta property="og:title" content="Thank You · My Goat Farms">
+  <meta property="og:image" content="https://vighyatojha.github.io/MyGoatFarmsAdmin/assets/img/og-image.jpg">
+  <link rel="icon" type="image/png" href="assets/img/favicon.png">
+  <link rel="apple-touch-icon" href="assets/img/logo-192.png">
+  <link rel="stylesheet" href="assets/css/site.css?v=20261009a">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="top">
+    <div class="wrap top-inner">
+      <a class="wordmark" href="./" aria-label="My Goat Farms home">
+        <picture><source srcset="assets/img/logo-96.webp" type="image/webp"><img src="assets/img/logo-96.png" alt="My Goat Farms logo" width="40" height="40"></picture>
+        <span>My Goat Farms</span>
+      </a>
+    </div>
+  </header>
+
+  <main id="main" class="page-main">
+    <div class="wrap">
+      <section class="page-card center-card thanks is-sent">
+        <svg class="sent-check" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24" fill="none"/><path fill="none" d="M15 27l7 7 15-15"/></svg>
+        <h1 id="thanksTitle">Thank you!</h1>
+        <p>Your enquiry has reached us. We read every message and will reply soon by phone or email.</p>
+        <p>Need an answer sooner? Call or WhatsApp us on <a href="tel:+916354081563">63540 81563</a>.</p>
+        <div class="actions">
+          <a class="btn btn-primary btn-lg" href="./">Back to home</a>
+          <a class="btn btn-wa btn-lg" href="https://wa.me/916354081563?text=Hello%2C%20I%20just%20sent%20an%20enquiry%20on%20the%20My%20Goat%20Farms%20website." target="_blank" rel="noopener">WhatsApp us</a>
+        </div>
+        <ul class="link-list" aria-label="While you wait">
+          <li><a href="./#modules">What the app manages</a></li>
+          <li><a href="./#features">Features</a></li>
+          <li><a href="./#faq">Common questions</a></li>
+          <li><a href="privacy-policy.html">How we use your details</a></li>
+        </ul>
+      </section>
+    </div>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap foot-inner">
+      <a class="wordmark small" href="./" aria-label="My Goat Farms home"><picture><source srcset="assets/img/logo-96.webp" type="image/webp"><img src="assets/img/logo-96.png" alt="My Goat Farms logo" width="28" height="28" loading="lazy"></picture><span>My Goat Farms</span></a>
+      <nav class="foot-links" aria-label="Footer">
+        <a href="./#faq">FAQ</a>
+        <a href="./#contact">Contact</a>
+        <a href="privacy-policy.html">Privacy policy</a>
+      </nav>
+      <p>© 2026 My Goat Farms · Kamrej, Surat</p>
+    </div>
+  </footer>
+
+  <script>
+    // Greet the visitor by first name if the form handed it over, then forget it.
+    (function () {
+      try {
+        var name = sessionStorage.getItem('mgf_enquiry_name');
+        if (name) {
+          document.getElementById('thanksTitle').textContent = 'Thank you, ' + name + '!';
+          sessionStorage.removeItem('mgf_enquiry_name');
+        }
+      } catch (e) { /* storage blocked: keep the plain greeting */ }
+    })();
+  </script>
+</body>
+</html>

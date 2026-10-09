@@ -97,12 +97,12 @@ if (visual && phone && !reduceMotion && window.matchMedia('(pointer: fine)').mat
 const dialog = $('enquiryDialog');
 const panel = $('enquiryPanel');
 const form = $('enquiryForm');
-const sent = $('enquirySent');
 const statusBox = $('enquiryStatus');
 const submitBtn = $('enquirySubmit');
 const counter = $('enqMessageCount');
 let sender = null; // the lazily loaded enquiry-submit.js module
 let lastTrigger = null;
+let openedAt = 0; // when the form was opened, for the spam time check
 
 const loadSender = () => (sender ||= import('./enquiry-submit.js?v=20261007e'));
 
@@ -113,6 +113,7 @@ document.querySelectorAll('[data-open-enquiry]').forEach((el) => {
 
 function openEnquiry(trigger) {
   lastTrigger = trigger || null;
+  openedAt = Date.now();
   setMenu(false);
   loadSender().catch(() => {});
   // Grow from the button that was pressed.
@@ -125,7 +126,7 @@ function openEnquiry(trigger) {
   if (typeof dialog.showModal === 'function') dialog.showModal();
   else dialog.setAttribute('open', '');
   document.documentElement.classList.add('modal-open');
-  setTimeout(() => (form.hidden ? $('sentTitle') : $('enqName')).focus({ preventScroll: true }), reduceMotion ? 0 : 260);
+  setTimeout(() => $('enqName').focus({ preventScroll: true }), reduceMotion ? 0 : 260);
 }
 
 function closeEnquiry() {
@@ -134,7 +135,6 @@ function closeEnquiry() {
     dialog.classList.remove('closing');
     dialog.close();
     document.documentElement.classList.remove('modal-open');
-    if (!sent.hidden) resetForm();
     lastTrigger?.focus({ preventScroll: true });
   };
   if (reduceMotion) { done(); return; }
@@ -188,17 +188,43 @@ function resetForm() {
   updateCounter();
   statusBox.textContent = '';
   document.querySelectorAll('#subjectChips .chip').forEach((c) => c.classList.remove('on'));
-  form.hidden = false;
-  sent.hidden = true;
-  panel.classList.remove('is-sent');
 }
 
+// After a successful send, go to the thank-you page. The first name is
+// handed over in sessionStorage so it never appears in the address bar.
 function showSent(name) {
-  $('sentText').textContent = `Thanks${name ? `, ${name.split(' ')[0]}` : ''}. We'll get back to you soon by phone or email.`;
-  form.hidden = true;
-  sent.hidden = false;
-  panel.classList.add('is-sent');
-  $('sentTitle').focus({ preventScroll: true });
+  try { sessionStorage.setItem('mgf_enquiry_name', String(name || '').trim().split(/\s+/)[0].slice(0, 40)); } catch { /* storage blocked */ }
+  location.href = 'thank-you.html';
+}
+
+// Coming back from the thank-you page with the Back button can restore the
+// old form values (or the whole page from cache); start with an empty form.
+window.addEventListener('pageshow', () => {
+  resetForm();
+  setBusy(false);
+  if (dialog.open) { dialog.close(); document.documentElement.classList.remove('modal-open'); }
+});
+
+/* ---------------- Spam protection ----------------
+   Three quiet checks on top of the honeypot field:
+   1. Time check: people take more than a few seconds to fill the form;
+      bots submit almost instantly. Too-fast submissions look successful
+      but nothing is stored.
+   2. Cool-down: one enquiry per browser per minute.
+   3. Link limit: real enquiries rarely contain links; spam usually does. */
+const MIN_FILL_MS = 4000;
+const COOLDOWN_MS = 60 * 1000;
+const MAX_LINKS = 2;
+const LAST_SENT_KEY = 'mgf_last_enquiry_at';
+
+function lastSentAt() {
+  try { return Number(localStorage.getItem(LAST_SENT_KEY)) || 0; } catch { return 0; }
+}
+function markSent() {
+  try { localStorage.setItem(LAST_SENT_KEY, String(Date.now())); } catch { /* storage blocked */ }
+}
+function countLinks(text) {
+  return (String(text).match(/https?:\/\/|www\.|\[url|<a\s/gi) || []).length;
 }
 
 function setBusy(on) {
@@ -223,8 +249,20 @@ form.addEventListener('submit', async (e) => {
 
   const values = validator.values();
 
-  // Honeypot: a bot filled the hidden field. Look successful, store nothing.
-  if ($('enqCompany').value) { showSent(values.name); return; }
+  // Honeypot or too-fast submission: a bot. Look successful, store nothing.
+  if ($('enqCompany').value || Date.now() - openedAt < MIN_FILL_MS) { showSent(values.name); return; }
+
+  if (countLinks(`${values.subject} ${values.message}`) > MAX_LINKS) {
+    validator.showErrors({ message: `Please include no more than ${MAX_LINKS} links.` });
+    statusBox.textContent = 'Fix the highlighted fields, then send again.';
+    return;
+  }
+
+  const wait = COOLDOWN_MS - (Date.now() - lastSentAt());
+  if (wait > 0) {
+    statusBox.textContent = `You've just sent an enquiry. Please wait ${Math.ceil(wait / 1000)} seconds before sending another, or call us on 63540 81563.`;
+    return;
+  }
 
   setBusy(true);
   try {
@@ -233,6 +271,7 @@ form.addEventListener('submit', async (e) => {
       sendEnquiry(values),
       new Promise((_, reject) => setTimeout(() => reject(Object.assign(new Error('timeout'), { code: 'timeout' })), SEND_TIMEOUT_MS)),
     ]);
+    markSent();
     showSent(values.name);
   } catch (err) {
     console.error(err);
@@ -241,7 +280,6 @@ form.addEventListener('submit', async (e) => {
     statusBox.textContent = err.code === 'timeout'
       ? "Couldn't reach the server. Check your internet connection and send again, or call us."
       : err.fields ? 'Fix the highlighted fields, then send again.' : "Your enquiry wasn't sent. Try again, or call us on 63540 81563.";
-  } finally {
     setBusy(false);
   }
 });
