@@ -1002,7 +1002,7 @@ const settingsView = {
     const phones = [c.mobile, ...c.phones].map((x) => x.trim()).filter(Boolean);
     const emails = c.emails.map((x) => x.trim()).filter(Boolean);
     $('contactPreview').innerHTML = `
-      <img src="../assets/img/logo.png" alt="" width="44" height="44" class="pv-logo">
+      <img src="../assets/img/logo.png" alt="My Goat Farms logo" width="44" height="44" class="pv-logo">
       <p class="pv-title">Waiting for approval</p>
       <p class="pv-text">Your farm has been registered. An admin will review it soon.</p>
       <div class="pv-card">

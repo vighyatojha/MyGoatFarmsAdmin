@@ -1,2 +1,8 @@
+# My Goat Farms public website
 User-agent: *
+Allow: /
+# Private admin panel (its pages are also marked noindex).
 Disallow: /admin/
+Disallow: /MyGoatFarmsAdmin/admin/
+
+Sitemap: https://vighyatojha.github.io/MyGoatFarmsAdmin/sitemap.xml

@@ -10,8 +10,11 @@ your app has never used.
 ```
 MyGoatFarmsAdmin/
 ├── firestore.rules          your app's rules + admin additions and validators
-├── index.html               public landing page + Contact form
-├── 404.html, robots.txt
+├── index.html               public landing page, FAQ + Contact form
+├── privacy-policy.html      privacy policy (linked from the footer and form)
+├── thank-you.html           shown after an enquiry is sent (noindex)
+├── 404.html                 custom "page not found" page
+├── robots.txt, sitemap.xml  for search engines / Google Search Console
 ├── admin/
 │   ├── index.html           the whole admin panel: sign-in + every section
 │   └── *.html               old page addresses; they forward to admin/#/<section>
@@ -22,8 +25,21 @@ MyGoatFarmsAdmin/
         ├── db.js                every Firestore read/write
         ├── validators.js        form rules shared by every form and db.js
         ├── admin-app.js         the admin panel (router, live data, all sections)
-        └── main.js              landing page Contact form
+        └── main.js              landing page Contact form + spam checks
 ```
+
+## Search and sharing
+
+- Every public page has its own `<title>`, meta description, canonical URL
+  and link-preview tags. The preview image is `assets/img/og-image.jpg`
+  (1200×630).
+- All URLs in those tags, `sitemap.xml` and `robots.txt` use
+  `https://vighyatojha.github.io/MyGoatFarmsAdmin/`. If you move to your own
+  domain, search-and-replace that address in every `.html` file,
+  `sitemap.xml` and `robots.txt`.
+- Contact form spam protection: a hidden honeypot field, a minimum fill
+  time, a one-minute cool-down per browser and a limit of 2 links per
+  message, plus the server-side checks in `firestore.rules`.
 
 ## How the admin panel loads
 

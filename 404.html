@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex">
-  <!-- GitHub Pages project sites live under /<repo>/, so absolute "/" links
-       would point at the wrong place. Work out the site root first. -->
+  <!-- GitHub Pages shows this page at whatever address was mistyped, so
+       relative links would break. Work out the site root first. -->
   <script>
     (function () {
       var seg = location.pathname.split('/')[1];
@@ -13,22 +13,50 @@
       document.write('<base href="' + root + '">');
     })();
   </script>
-  <title>Page not found · My Goat Farms</title>
+  <title>Page Not Found (404) · My Goat Farms</title>
+  <meta name="description" content="This page doesn't exist or has moved. Go back to the My Goat Farms home page, read the FAQ or send us an enquiry.">
+  <meta name="theme-color" content="#173d24">
   <link rel="icon" type="image/png" href="assets/img/favicon.png">
-  <link rel="stylesheet" href="assets/css/styles.css">
-  <link rel="stylesheet" href="assets/css/landing.css">
+  <link rel="stylesheet" href="assets/css/site.css?v=20261009a">
 </head>
-<body class="auth-page">
-  <div class="auth-shell">
-    <a class="brand auth-brand" href="./">
-      <span class="logo-ring lg"><img src="assets/img/logo.png" alt="" width="48" height="48"></span>
-      <span class="brand-name">My Goat Farms</span>
-    </a>
-    <div class="auth-card">
-      <h1>Page not found</h1>
-      <p>The page you are looking for doesn't exist or has moved.</p>
-      <a class="btn btn-primary btn-full" href="./">Back to home</a>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="top">
+    <div class="wrap top-inner">
+      <a class="wordmark" href="./" aria-label="My Goat Farms home">
+        <picture><source srcset="assets/img/logo-96.webp" type="image/webp"><img src="assets/img/logo-96.png" alt="My Goat Farms logo" width="40" height="40"></picture>
+        <span>My Goat Farms</span>
+      </a>
     </div>
-  </div>
+  </header>
+
+  <main id="main" class="page-main">
+    <div class="wrap">
+      <section class="page-card center-card">
+        <p class="big-code" aria-hidden="true">404</p>
+        <h1>This page has wandered off</h1>
+        <p>The page you're looking for doesn't exist or has moved. Check the address, or use one of the links below.</p>
+        <div class="actions">
+          <a class="btn btn-primary btn-lg" href="./">Back to home</a>
+          <a class="btn btn-quiet btn-lg" href="./#enquiry">Send an enquiry</a>
+        </div>
+        <ul class="link-list" aria-label="Popular pages">
+          <li><a href="./#modules">What the app manages</a></li>
+          <li><a href="./#features">Features</a></li>
+          <li><a href="./#faq">FAQ</a></li>
+          <li><a href="./#contact">Contact</a></li>
+          <li><a href="privacy-policy.html">Privacy policy</a></li>
+        </ul>
+      </section>
+    </div>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap foot-inner">
+      <a class="wordmark small" href="./" aria-label="My Goat Farms home"><picture><source srcset="assets/img/logo-96.webp" type="image/webp"><img src="assets/img/logo-96.png" alt="My Goat Farms logo" width="28" height="28" loading="lazy"></picture><span>My Goat Farms</span></a>
+      <p>© 2026 My Goat Farms · Kamrej, Surat</p>
+    </div>
+  </footer>
 </body>
 </html>
